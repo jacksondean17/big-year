@@ -19,7 +19,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function seed() {
   const csvPath =
-    process.argv[2] || resolve(__dirname, "../data/challenges.csv");
+    process.argv[2] || resolve(__dirname, "../data/big year challenge list - starters.csv");
   const csv = readFileSync(csvPath, "utf-8");
 
   const records: Record<string, string>[] = parse(csv, {
