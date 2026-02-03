@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --turbopack)",
+      "Bash(npm install:*)",
+      "Bash(npx shadcn@latest add card badge button input)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run seed:*)",
+      "Bash(npm run dev:*)",
+      "Bash(curl:*)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\jacks\\git\\big-year\\src\\app\\challenges"
+    ]
+  }
+}
