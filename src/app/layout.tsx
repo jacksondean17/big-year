@@ -21,13 +21,13 @@ const monoFont = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Big Year Challenges",
+  title: "The Big Year Challenges",
   description: "A year of meaningful challenges",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Big Year",
+    title: "The Big Year",
   },
 };
 
@@ -52,7 +52,7 @@ export default function RootLayout({
         <header className="site-header">
           <div className="header-inner mx-auto max-w-5xl px-4 py-4">
             <a href="/" className="brand text-xl tracking-tight">
-              Big Year
+              The Big Year
             </a>
           </div>
         </header>
