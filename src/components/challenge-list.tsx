@@ -52,7 +52,7 @@ export function ChallengeList({ challenges }: { challenges: Challenge[] }) {
         {filtered.length} challenge{filtered.length !== 1 ? "s" : ""}
       </p>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="challenge-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map((challenge) => (
           <ChallengeCard key={challenge.id} challenge={challenge} />
         ))}

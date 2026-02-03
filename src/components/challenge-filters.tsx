@@ -25,7 +25,7 @@ export function ChallengeFilters({
   onSearchChange,
 }: ChallengeFiltersProps) {
   return (
-    <div className="space-y-4">
+    <div className="challenge-filters space-y-4">
       <Input
         placeholder="Search challenges..."
         value={searchQuery}

@@ -10,15 +10,15 @@ import { Badge } from "@/components/ui/badge";
 import { Challenge } from "@/lib/types";
 
 const difficultyColor: Record<string, string> = {
-  Easy: "bg-green-100 text-green-800",
-  Medium: "bg-yellow-100 text-yellow-800",
-  Hard: "bg-red-100 text-red-800",
+  Easy: "difficulty-easy",
+  Medium: "difficulty-medium",
+  Hard: "difficulty-hard",
 };
 
 export function ChallengeCard({ challenge }: { challenge: Challenge }) {
   return (
     <Link href={`/challenges/${challenge.id}`}>
-      <Card className="h-full transition-shadow hover:shadow-md">
+      <Card className="h-full transition-all hover:-translate-y-0.5">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-2">
             <CardTitle className="text-base leading-tight">
