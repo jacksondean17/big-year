@@ -1,0 +1,47 @@
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { getUserChallenges } from "@/lib/my-list";
+import { ChallengeCard } from "@/components/challenge-card";
+import type { Challenge } from "@/lib/types";
+
+export default async function MyListPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/");
+  }
+
+  const savedChallenges = await getUserChallenges();
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight">My List</h1>
+        <p className="text-muted-foreground">
+          {savedChallenges.length} saved challenge
+          {savedChallenges.length !== 1 ? "s" : ""}
+        </p>
+      </div>
+
+      {savedChallenges.length === 0 ? (
+        <p className="py-12 text-center text-muted-foreground">
+          You haven&apos;t saved any challenges yet. Browse challenges and click
+          Save to add them here.
+        </p>
+      ) : (
+        <div className="challenge-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {savedChallenges.map((item) => (
+            <ChallengeCard
+              key={item.challenge_id}
+              challenge={item.challenges as Challenge}
+              isSaved={true}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

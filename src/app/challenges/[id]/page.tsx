@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getChallengeById } from "@/lib/challenges";
+import { getUserChallengeIds } from "@/lib/my-list";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MyListButton } from "@/components/my-list-button";
 
 const difficultyColor: Record<string, string> = {
   Easy: "bg-green-100 text-green-800",
@@ -22,6 +24,9 @@ export default async function ChallengePage({
   if (!challenge) {
     notFound();
   }
+
+  const savedIds = await getUserChallengeIds();
+  const isSaved = savedIds.has(challenge.id);
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -42,7 +47,10 @@ export default async function ChallengePage({
               {challenge.difficulty}
             </Badge>
           </div>
-          <CardTitle className="text-2xl">{challenge.title}</CardTitle>
+          <div className="flex items-start justify-between gap-4">
+            <CardTitle className="text-2xl">{challenge.title}</CardTitle>
+            <MyListButton challengeId={challenge.id} initialSaved={isSaved} />
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           <div>

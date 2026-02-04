@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Spectral, JetBrains_Mono } from "next/font/google";
+import Link from "next/link";
+import { AuthButton } from "@/components/auth-button";
 import "./globals.css";
 
 const displayFont = Fraunces({
@@ -54,6 +56,15 @@ export default function RootLayout({
             <a href="/" className="brand text-xl tracking-tight">
               The Big Year
             </a>
+            <nav className="flex items-center gap-3">
+              <Link
+                href="/my-list"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                My List
+              </Link>
+              <AuthButton />
+            </nav>
           </div>
         </header>
         <main className="content-wrap mx-auto max-w-5xl px-4 py-6">

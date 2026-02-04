@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Challenge } from "@/lib/types";
+import { MyListButton } from "@/components/my-list-button";
 
 const difficultyColor: Record<string, string> = {
   Easy: "difficulty-easy",
@@ -15,7 +16,13 @@ const difficultyColor: Record<string, string> = {
   Hard: "difficulty-hard",
 };
 
-export function ChallengeCard({ challenge }: { challenge: Challenge }) {
+export function ChallengeCard({
+  challenge,
+  isSaved,
+}: {
+  challenge: Challenge;
+  isSaved?: boolean;
+}) {
   return (
     <Link href={`/challenges/${challenge.id}`}>
       <Card className="h-full transition-all hover:-translate-y-0.5">
@@ -24,6 +31,11 @@ export function ChallengeCard({ challenge }: { challenge: Challenge }) {
             <CardTitle className="text-base leading-tight">
               {challenge.title}
             </CardTitle>
+            <MyListButton
+              challengeId={challenge.id}
+              initialSaved={isSaved}
+              size="sm"
+            />
           </div>
           <div className="flex flex-wrap gap-1.5 pt-1">
             <Badge variant="outline" className="text-xs">

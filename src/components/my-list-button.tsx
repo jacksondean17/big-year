@@ -1,0 +1,69 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Bookmark } from "lucide-react";
+
+interface MyListButtonProps {
+  challengeId: number;
+  initialSaved?: boolean;
+  size?: "sm" | "default";
+}
+
+export function MyListButton({
+  challengeId,
+  initialSaved = false,
+  size = "sm",
+}: MyListButtonProps) {
+  const [saved, setSaved] = useState(initialSaved);
+  const [loading, setLoading] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const supabase = createClient();
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setIsLoggedIn(!!user);
+    });
+  }, [supabase]);
+
+  if (isLoggedIn === null || !isLoggedIn) return null;
+
+  const toggle = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setLoading(true);
+
+    if (saved) {
+      await supabase
+        .from("user_challenges")
+        .delete()
+        .eq("challenge_id", challengeId);
+      setSaved(false);
+    } else {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from("user_challenges")
+          .insert({ user_id: user.id, challenge_id: challengeId });
+        setSaved(true);
+      }
+    }
+    setLoading(false);
+  };
+
+  return (
+    <Button
+      variant={saved ? "default" : "outline"}
+      size={size}
+      onClick={toggle}
+      disabled={loading}
+      aria-label={saved ? "Remove from My List" : "Add to My List"}
+    >
+      <Bookmark className={`size-4 ${saved ? "fill-current" : ""}`} />
+      {saved ? "Saved" : "Save"}
+    </Button>
+  );
+}

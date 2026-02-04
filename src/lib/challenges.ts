@@ -1,7 +1,8 @@
-import { supabase } from "./supabase";
+import { createClient } from "./supabase/server";
 import { Challenge } from "./types";
 
 export async function getChallenges(): Promise<Challenge[]> {
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("challenges")
     .select("*")
@@ -14,6 +15,7 @@ export async function getChallenges(): Promise<Challenge[]> {
 export async function getChallengeById(
   id: number
 ): Promise<Challenge | null> {
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("challenges")
     .select("*")
@@ -25,6 +27,7 @@ export async function getChallengeById(
 }
 
 export async function getCategories(): Promise<string[]> {
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("challenges")
     .select("category")

@@ -1,8 +1,10 @@
 import { getChallenges } from "@/lib/challenges";
+import { getUserChallengeIds } from "@/lib/my-list";
 import { ChallengeList } from "@/components/challenge-list";
 
 export default async function Home() {
   const challenges = await getChallenges();
+  const savedIds = await getUserChallengeIds();
 
   return (
     <div>
@@ -12,7 +14,10 @@ export default async function Home() {
           {challenges.length} challenges to push your boundaries this year.
         </p>
       </div>
-      <ChallengeList challenges={challenges} />
+      <ChallengeList
+        challenges={challenges}
+        savedChallengeIds={[...savedIds]}
+      />
     </div>
   );
 }

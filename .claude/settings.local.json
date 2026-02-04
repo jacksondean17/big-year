@@ -7,7 +7,8 @@
       "Bash(npx tsc:*)",
       "Bash(npm run seed:*)",
       "Bash(npm run dev:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "WebFetch(domain:supabase.com)"
     ],
     "additionalDirectories": [
       "c:\\Users\\jacks\\git\\big-year\\src\\app\\challenges"

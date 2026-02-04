@@ -7,7 +7,13 @@ import { ChallengeFilters } from "./challenge-filters";
 
 const DIFFICULTIES = ["Easy", "Medium", "Hard"];
 
-export function ChallengeList({ challenges }: { challenges: Challenge[] }) {
+export function ChallengeList({
+  challenges,
+  savedChallengeIds,
+}: {
+  challenges: Challenge[];
+  savedChallengeIds?: number[];
+}) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(
     null
@@ -54,7 +60,11 @@ export function ChallengeList({ challenges }: { challenges: Challenge[] }) {
 
       <div className="challenge-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map((challenge) => (
-          <ChallengeCard key={challenge.id} challenge={challenge} />
+          <ChallengeCard
+            key={challenge.id}
+            challenge={challenge}
+            isSaved={savedChallengeIds?.includes(challenge.id)}
+          />
         ))}
       </div>
 
