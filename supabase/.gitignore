@@ -1,0 +1,7 @@
+# Local Supabase state
+.branches
+.temp
+.env
+
+# Docker volumes (managed by CLI)
+volumes/
