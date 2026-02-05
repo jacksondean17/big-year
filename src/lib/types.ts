@@ -7,3 +7,7 @@ export interface Challenge {
   completion_criteria: string;
   category: string;
 }
+
+export type UserVoteType = 1 | -1 | null;
+
+export type SortOption = "default" | "popular";

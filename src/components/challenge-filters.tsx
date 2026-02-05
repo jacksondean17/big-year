@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { SortOption } from "@/lib/types";
 
 interface ChallengeFiltersProps {
   categories: string[];
@@ -9,9 +10,11 @@ interface ChallengeFiltersProps {
   selectedCategory: string | null;
   selectedDifficulty: string | null;
   searchQuery: string;
+  selectedSort: SortOption;
   onCategoryChange: (category: string | null) => void;
   onDifficultyChange: (difficulty: string | null) => void;
   onSearchChange: (query: string) => void;
+  onSortChange: (sort: SortOption) => void;
 }
 
 export function ChallengeFilters({
@@ -20,9 +23,11 @@ export function ChallengeFilters({
   selectedCategory,
   selectedDifficulty,
   searchQuery,
+  selectedSort,
   onCategoryChange,
   onDifficultyChange,
   onSearchChange,
+  onSortChange,
 }: ChallengeFiltersProps) {
   return (
     <div className="challenge-filters space-y-4">
@@ -80,6 +85,26 @@ export function ChallengeFilters({
               {diff}
             </Button>
           ))}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-muted-foreground">Sort by</p>
+        <div className="flex flex-wrap gap-1.5">
+          <Button
+            variant={selectedSort === "default" ? "default" : "outline"}
+            size="sm"
+            onClick={() => onSortChange("default")}
+          >
+            Default
+          </Button>
+          <Button
+            variant={selectedSort === "popular" ? "default" : "outline"}
+            size="sm"
+            onClick={() => onSortChange("popular")}
+          >
+            Popular
+          </Button>
         </div>
       </div>
     </div>

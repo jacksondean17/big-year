@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Challenge } from "@/lib/types";
+import type { SortOption } from "@/lib/types";
 import { ChallengeCard } from "./challenge-card";
 import { ChallengeFilters } from "./challenge-filters";
 
@@ -10,15 +11,20 @@ const DIFFICULTIES = ["Easy", "Medium", "Hard"];
 export function ChallengeList({
   challenges,
   savedChallengeIds,
+  voteScores,
+  userVotes,
 }: {
   challenges: Challenge[];
   savedChallengeIds?: number[];
+  voteScores: Record<number, number>;
+  userVotes: Record<number, number>;
 }) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(
     null
   );
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedSort, setSelectedSort] = useState<SortOption>("default");
 
   const categories = useMemo(() => {
     const cats = [...new Set(challenges.map((c) => c.category))];
@@ -26,7 +32,7 @@ export function ChallengeList({
   }, [challenges]);
 
   const filtered = useMemo(() => {
-    return challenges.filter((c) => {
+    let result = challenges.filter((c) => {
       if (selectedCategory && c.category !== selectedCategory) return false;
       if (selectedDifficulty && c.difficulty !== selectedDifficulty)
         return false;
@@ -39,7 +45,22 @@ export function ChallengeList({
       }
       return true;
     });
-  }, [challenges, selectedCategory, selectedDifficulty, searchQuery]);
+
+    if (selectedSort === "popular") {
+      result = [...result].sort(
+        (a, b) => (voteScores[b.id] ?? 0) - (voteScores[a.id] ?? 0)
+      );
+    }
+
+    return result;
+  }, [
+    challenges,
+    selectedCategory,
+    selectedDifficulty,
+    searchQuery,
+    selectedSort,
+    voteScores,
+  ]);
 
   return (
     <div className="space-y-6">
@@ -49,9 +70,11 @@ export function ChallengeList({
         selectedCategory={selectedCategory}
         selectedDifficulty={selectedDifficulty}
         searchQuery={searchQuery}
+        selectedSort={selectedSort}
         onCategoryChange={setSelectedCategory}
         onDifficultyChange={setSelectedDifficulty}
         onSearchChange={setSearchQuery}
+        onSortChange={setSelectedSort}
       />
 
       <p className="text-sm text-muted-foreground">
@@ -64,6 +87,8 @@ export function ChallengeList({
             key={challenge.id}
             challenge={challenge}
             isSaved={savedChallengeIds?.includes(challenge.id)}
+            score={voteScores[challenge.id] ?? 0}
+            userVote={(userVotes[challenge.id] as 1 | -1) ?? null}
           />
         ))}
       </div>

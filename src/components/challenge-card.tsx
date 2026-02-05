@@ -8,7 +8,9 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Challenge } from "@/lib/types";
+import type { UserVoteType } from "@/lib/types";
 import { MyListButton } from "@/components/my-list-button";
+import { VoteButton } from "@/components/vote-button";
 
 const difficultyColor: Record<string, string> = {
   Easy: "difficulty-easy",
@@ -19,9 +21,13 @@ const difficultyColor: Record<string, string> = {
 export function ChallengeCard({
   challenge,
   isSaved,
+  score = 0,
+  userVote = null,
 }: {
   challenge: Challenge;
   isSaved?: boolean;
+  score?: number;
+  userVote?: UserVoteType;
 }) {
   return (
     <Link href={`/challenges/${challenge.id}`}>
@@ -53,9 +59,17 @@ export function ChallengeCard({
           <CardDescription className="line-clamp-2">
             {challenge.description}
           </CardDescription>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {challenge.estimated_time}
-          </p>
+          <div className="mt-2 flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              {challenge.estimated_time}
+            </p>
+            <VoteButton
+              challengeId={challenge.id}
+              initialScore={score}
+              initialUserVote={userVote}
+              size="sm"
+            />
+          </div>
         </CardContent>
       </Card>
     </Link>
