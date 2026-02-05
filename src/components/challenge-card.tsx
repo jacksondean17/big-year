@@ -11,6 +11,7 @@ import { Challenge } from "@/lib/types";
 import type { UserVoteType } from "@/lib/types";
 import { MyListButton } from "@/components/my-list-button";
 import { VoteButton } from "@/components/vote-button";
+import { StickyNote } from "lucide-react";
 
 const difficultyColor: Record<string, string> = {
   Easy: "difficulty-easy",
@@ -23,11 +24,13 @@ export function ChallengeCard({
   isSaved,
   score = 0,
   userVote = null,
+  hasNote = false,
 }: {
   challenge: Challenge;
   isSaved?: boolean;
   score?: number;
   userVote?: UserVoteType;
+  hasNote?: boolean;
 }) {
   return (
     <Link href={`/challenges/${challenge.id}`}>
@@ -37,11 +40,19 @@ export function ChallengeCard({
             <CardTitle className="text-base leading-tight">
               {challenge.title}
             </CardTitle>
-            <MyListButton
-              challengeId={challenge.id}
-              initialSaved={isSaved}
-              size="sm"
-            />
+            <div className="flex items-center gap-1">
+              {hasNote && (
+                <StickyNote
+                  className="size-4 fill-amber-200 text-amber-600"
+                  aria-label="Has private note"
+                />
+              )}
+              <MyListButton
+                challengeId={challenge.id}
+                initialSaved={isSaved}
+                size="sm"
+              />
+            </div>
           </div>
           <div className="flex flex-wrap gap-1.5 pt-1">
             <Badge variant="outline" className="text-xs">

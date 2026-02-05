@@ -6,11 +6,13 @@ import {
   getVoteCountForChallenge,
   getUserVoteForChallenge,
 } from "@/lib/votes";
+import { getUserNoteForChallenge } from "@/lib/notes";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MyListButton } from "@/components/my-list-button";
 import { VoteButton } from "@/components/vote-button";
+import { ChallengeNote } from "@/components/challenge-note";
 
 const difficultyColor: Record<string, string> = {
   Easy: "bg-green-100 text-green-800",
@@ -30,10 +32,11 @@ export default async function ChallengePage({
     notFound();
   }
 
-  const [savedIds, voteScore, userVote] = await Promise.all([
+  const [savedIds, voteScore, userVote, userNote] = await Promise.all([
     getUserChallengeIds(),
     getVoteCountForChallenge(challenge.id),
     getUserVoteForChallenge(challenge.id),
+    getUserNoteForChallenge(challenge.id),
   ]);
   const isSaved = savedIds.has(challenge.id);
 
@@ -92,6 +95,11 @@ export default async function ChallengePage({
             </h2>
             <p>{challenge.completion_criteria}</p>
           </div>
+
+          <ChallengeNote
+            challengeId={challenge.id}
+            initialNote={userNote}
+          />
         </CardContent>
       </Card>
     </div>

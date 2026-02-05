@@ -13,11 +13,13 @@ export function ChallengeList({
   savedChallengeIds,
   voteScores,
   userVotes,
+  userNoteIds,
 }: {
   challenges: Challenge[];
   savedChallengeIds?: number[];
   voteScores: Record<number, number>;
   userVotes: Record<number, number>;
+  userNoteIds?: number[];
 }) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(
@@ -89,6 +91,7 @@ export function ChallengeList({
             isSaved={savedChallengeIds?.includes(challenge.id)}
             score={voteScores[challenge.id] ?? 0}
             userVote={(userVotes[challenge.id] as 1 | -1) ?? null}
+            hasNote={userNoteIds?.includes(challenge.id)}
           />
         ))}
       </div>

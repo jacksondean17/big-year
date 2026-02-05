@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getUserChallenges } from "@/lib/my-list";
 import { getVoteCounts, getUserVotes } from "@/lib/votes";
+import { getUserNoteChallengeIds } from "@/lib/notes";
 import { ChallengeCard } from "@/components/challenge-card";
 import type { Challenge } from "@/lib/types";
 
@@ -15,10 +16,11 @@ export default async function MyListPage() {
     redirect("/");
   }
 
-  const [savedChallenges, voteCounts, userVotes] = await Promise.all([
+  const [savedChallenges, voteCounts, userVotes, noteIds] = await Promise.all([
     getUserChallenges(),
     getVoteCounts(),
     getUserVotes(),
+    getUserNoteChallengeIds(),
   ]);
 
   const voteScores = Object.fromEntries(voteCounts);
@@ -48,6 +50,7 @@ export default async function MyListPage() {
               isSaved={true}
               score={voteScores[item.challenge_id] ?? 0}
               userVote={(userVoteMap[item.challenge_id] as 1 | -1) ?? null}
+              hasNote={noteIds.has(item.challenge_id)}
             />
           ))}
         </div>
