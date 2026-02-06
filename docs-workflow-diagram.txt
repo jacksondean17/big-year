@@ -1,0 +1,78 @@
+┌─────────────────────────────────────────────────────────────────────┐
+│                    SUPABASE WORKFLOW DIAGRAM                         │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  YOUR COMPUTER                                                        │
+│                                                                       │
+│  ┌──────────────────┐         ┌─────────────────┐                   │
+│  │  Code Editor     │         │  Docker         │                    │
+│  │  (VS Code)       │         │  Container      │                    │
+│  │                  │         │                  │                   │
+│  │  migrations/     │────────▶│  PostgreSQL     │                   │
+│  │  001_*.sql       │  Apply  │  (Local)        │                   │
+│  │  002_*.sql       │         │                  │                   │
+│  │  003_*.sql       │         │  localhost:     │                   │
+│  │  004_*.sql       │         │  54321          │                   │
+│  └──────────────────┘         └─────────────────┘                   │
+│         │                              ▲                              │
+│         │ npm run                      │ npm run                      │
+│         │ dev:local                    │ db:reset                     │
+│         ▼                              │                              │
+│  ┌──────────────────┐         ┌─────────────────┐                   │
+│  │  Next.js App     │◀────────│  Seed Script    │                   │
+│  │  localhost:3000  │  Read   │  .env.local.dev │                   │
+│  └──────────────────┘         └─────────────────┘                   │
+│                                                                       │
+└───────────────────────────────────────────────────────────────────────┘
+                                  │
+                                  │ npm run db:migrate
+                                  │ (Apply migrations)
+                                  ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│  SUPABASE CLOUD                                                       │
+│                                                                       │
+│  ┌─────────────────────────────────────────────────┐                 │
+│  │  PostgreSQL (Production)                        │                 │
+│  │  https://sylsnqtlcvnuaguvjikq.supabase.co      │                 │
+│  │                                                  │                 │
+│  │  ✓ Real user data                               │                 │
+│  │  ✓ Persistent storage                           │                 │
+│  │  ✓ Migrations tracked                           │                 │
+│  └─────────────────────────────────────────────────┘                 │
+│                      ▲                                                │
+│                      │ npm run dev                                    │
+│                      │ (Production mode)                              │
+│  ┌──────────────────┴─────────────────┐                             │
+│  │  Next.js App (when deployed)       │                             │
+│  └────────────────────────────────────┘                             │
+│                                                                       │
+└──────────────────────────────────────────────────────────────────────┘
+
+
+TYPICAL DAY:
+
+Morning:
+  1. npm run db:start       → Boots Docker, applies migrations
+  2. npm run seed:local     → Populates test data
+  3. npm run dev:local      → App runs against localhost:54321
+
+Adding Feature:
+  1. npx supabase migration new add_feature
+  2. Edit SQL file
+  3. npm run db:reset       → Test locally
+  4. npm run db:migrate     → Apply to production
+
+End of Day:
+  npm run db:stop           → Shut down Docker
+
+
+KEY CONCEPTS:
+
+  Local DB (Docker)              Remote DB (Cloud)
+  ═══════════════════            ═══════════════════
+  • Disposable                   • Persistent
+  • Fast reset                   • Real users
+  • Safe testing                 • Careful changes
+  • Generated from               • Updated via
+    migration files                db:migrate
