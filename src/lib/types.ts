@@ -24,3 +24,13 @@ export interface ChallengeSaver {
   profiles: UserProfile;
   isCurrentUser?: boolean;
 }
+
+export interface UserWithSaveCount {
+  id: string;
+  display_name: string;
+  avatar_url: string | null;
+  save_count: number;
+  created_at: string;
+}
+
+export type UserSortOption = "name" | "saves" | "recent";
