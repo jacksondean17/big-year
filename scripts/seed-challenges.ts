@@ -28,13 +28,21 @@ async function seed() {
     trim: true,
   });
 
+  // Normalize difficulty values to match DB constraint (Easy, Medium, Hard)
+  const normalizeDifficulty = (d: string): string => {
+    const lower = d.toLowerCase();
+    if (lower.includes("easy")) return "Easy";
+    if (lower.includes("hard")) return "Hard";
+    return "Medium"; // Default to Medium for "Medium", "Medium+", etc.
+  };
+
   const challenges = records
     .filter((r) => r["Title"]?.trim())
     .map((r) => ({
       title: r["Title"],
       description: r["Description"],
       estimated_time: r["Estimated Time"],
-      difficulty: r["Difficulty"],
+      difficulty: normalizeDifficulty(r["Difficulty"]),
       completion_criteria: r["Completion Criteria"],
       category: r["Category"],
     }));
