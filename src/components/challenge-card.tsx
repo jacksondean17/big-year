@@ -8,9 +8,10 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Challenge } from "@/lib/types";
-import type { UserVoteType } from "@/lib/types";
+import type { UserVoteType, ChallengeSaver } from "@/lib/types";
 import { MyListButton } from "@/components/my-list-button";
 import { VoteButton } from "@/components/vote-button";
+import { SaversCount } from "@/components/savers-count";
 import { StickyNote } from "lucide-react";
 
 const difficultyColor: Record<string, string> = {
@@ -25,12 +26,16 @@ export function ChallengeCard({
   score = 0,
   userVote = null,
   hasNote = false,
+  saveCount = 0,
+  savers = [],
 }: {
   challenge: Challenge;
   isSaved?: boolean;
   score?: number;
   userVote?: UserVoteType;
   hasNote?: boolean;
+  saveCount?: number;
+  savers?: ChallengeSaver[];
 }) {
   return (
     <Link href={`/challenges/${challenge.id}`}>
@@ -47,6 +52,7 @@ export function ChallengeCard({
                   aria-label="Has private note"
                 />
               )}
+              <SaversCount count={saveCount} savers={savers} size="sm" />
               <MyListButton
                 challengeId={challenge.id}
                 initialSaved={isSaved}

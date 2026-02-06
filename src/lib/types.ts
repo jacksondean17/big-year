@@ -11,3 +11,16 @@ export interface Challenge {
 export type UserVoteType = 1 | -1 | null;
 
 export type SortOption = "default" | "popular";
+
+export interface UserProfile {
+  id: string;
+  display_name: string;
+  avatar_url: string | null;
+}
+
+export interface ChallengeSaver {
+  user_id: string;
+  added_at: string;
+  profiles: UserProfile;
+  isCurrentUser?: boolean;
+}

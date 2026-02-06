@@ -4,10 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:local": "cp .env.local.dev .env.local && next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "seed": "tsx scripts/seed-challenges.ts",
+    "seed:local": "cp .env.local.dev .env.local && tsx scripts/seed-challenges.ts",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Challenge } from "@/lib/types";
-import type { SortOption } from "@/lib/types";
+import type { SortOption, ChallengeSaver } from "@/lib/types";
 import { ChallengeCard } from "./challenge-card";
 import { ChallengeFilters } from "./challenge-filters";
 
@@ -14,12 +14,16 @@ export function ChallengeList({
   voteScores,
   userVotes,
   userNoteIds,
+  saveCounts,
+  saversMap,
 }: {
   challenges: Challenge[];
   savedChallengeIds?: number[];
   voteScores: Record<number, number>;
   userVotes: Record<number, number>;
   userNoteIds?: number[];
+  saveCounts?: Record<number, number>;
+  saversMap?: Record<number, ChallengeSaver[]>;
 }) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(
@@ -92,6 +96,8 @@ export function ChallengeList({
             score={voteScores[challenge.id] ?? 0}
             userVote={(userVotes[challenge.id] as 1 | -1) ?? null}
             hasNote={userNoteIds?.includes(challenge.id)}
+            saveCount={saveCounts?.[challenge.id] ?? 0}
+            savers={saversMap?.[challenge.id] ?? []}
           />
         ))}
       </div>

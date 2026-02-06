@@ -7,12 +7,17 @@ import {
   getUserVoteForChallenge,
 } from "@/lib/votes";
 import { getUserNoteForChallenge } from "@/lib/notes";
+import {
+  getAllChallengeSavers,
+  getSaveCountForChallenge,
+} from "@/lib/savers";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MyListButton } from "@/components/my-list-button";
 import { VoteButton } from "@/components/vote-button";
 import { ChallengeNote } from "@/components/challenge-note";
+import { SaversList } from "@/components/savers-list";
 
 const difficultyColor: Record<string, string> = {
   Easy: "bg-green-100 text-green-800",
@@ -32,12 +37,15 @@ export default async function ChallengePage({
     notFound();
   }
 
-  const [savedIds, voteScore, userVote, userNote] = await Promise.all([
-    getUserChallengeIds(),
-    getVoteCountForChallenge(challenge.id),
-    getUserVoteForChallenge(challenge.id),
-    getUserNoteForChallenge(challenge.id),
-  ]);
+  const [savedIds, voteScore, userVote, userNote, savers, saveCount] =
+    await Promise.all([
+      getUserChallengeIds(),
+      getVoteCountForChallenge(challenge.id),
+      getUserVoteForChallenge(challenge.id),
+      getUserNoteForChallenge(challenge.id),
+      getAllChallengeSavers(challenge.id),
+      getSaveCountForChallenge(challenge.id),
+    ]);
   const isSaved = savedIds.has(challenge.id);
 
   return (
@@ -102,6 +110,10 @@ export default async function ChallengePage({
           />
         </CardContent>
       </Card>
+
+      <div className="mt-6">
+        <SaversList savers={savers} count={saveCount} />
+      </div>
     </div>
   );
 }

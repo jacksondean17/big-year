@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUserChallenges } from "@/lib/my-list";
 import { getVoteCounts, getUserVotes } from "@/lib/votes";
 import { getUserNoteChallengeIds } from "@/lib/notes";
+import { getSaveCounts, getSaversForChallenges } from "@/lib/savers";
 import { ChallengeCard } from "@/components/challenge-card";
 import type { Challenge } from "@/lib/types";
 
@@ -16,12 +17,17 @@ export default async function MyListPage() {
     redirect("/");
   }
 
-  const [savedChallenges, voteCounts, userVotes, noteIds] = await Promise.all([
-    getUserChallenges(),
-    getVoteCounts(),
-    getUserVotes(),
-    getUserNoteChallengeIds(),
-  ]);
+  const [savedChallenges, voteCounts, userVotes, noteIds, saveCounts] =
+    await Promise.all([
+      getUserChallenges(),
+      getVoteCounts(),
+      getUserVotes(),
+      getUserNoteChallengeIds(),
+      getSaveCounts(),
+    ]);
+
+  const challengeIds = savedChallenges.map((item) => item.challenge_id);
+  const saversMap = await getSaversForChallenges(challengeIds);
 
   const voteScores = Object.fromEntries(voteCounts);
   const userVoteMap = Object.fromEntries(userVotes);
@@ -51,6 +57,8 @@ export default async function MyListPage() {
               score={voteScores[item.challenge_id] ?? 0}
               userVote={(userVoteMap[item.challenge_id] as 1 | -1) ?? null}
               hasNote={noteIds.has(item.challenge_id)}
+              saveCount={saveCounts.get(item.challenge_id) ?? 0}
+              savers={saversMap.get(item.challenge_id) ?? []}
             />
           ))}
         </div>

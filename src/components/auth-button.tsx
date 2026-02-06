@@ -6,10 +6,25 @@ import { Button } from "@/components/ui/button";
 import { LogIn, LogOut } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
+// Dev-only test users for quick login
+const DEV_USERS = [
+  { email: "alice@example.com", name: "Alice" },
+  { email: "bob@example.com", name: "Bob" },
+  { email: "charlie@example.com", name: "Charlie" },
+];
+
 export function AuthButton() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showDevLogin, setShowDevLogin] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const supabase = createClient();
+
+  // Check if running locally
+  const isDev =
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1");
 
   useEffect(() => {
     const {
@@ -30,6 +45,33 @@ export function AuthButton() {
     });
   };
 
+  const [devLoading, setDevLoading] = useState(false);
+
+  const handleDevSignIn = async (email: string) => {
+    console.log("handleDevSignIn called with:", email);
+    setLoginError(null);
+    setDevLoading(true);
+    try {
+      console.log("Calling signInWithPassword...");
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password: "password123",
+      });
+      console.log("signInWithPassword result:", { data, error });
+      if (error) {
+        setLoginError(error.message);
+      } else {
+        setShowDevLogin(false);
+        window.location.reload();
+      }
+    } catch (e) {
+      console.error("signInWithPassword exception:", e);
+      setLoginError(String(e));
+    } finally {
+      setDevLoading(false);
+    }
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     window.location.reload();
@@ -39,10 +81,56 @@ export function AuthButton() {
 
   if (!user) {
     return (
-      <Button variant="outline" size="sm" onClick={handleSignIn}>
-        <LogIn className="size-4" />
-        Sign in
-      </Button>
+      <div className="relative">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleSignIn}>
+            <LogIn className="size-4" />
+            Sign in
+          </Button>
+          {isDev && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowDevLogin(!showDevLogin)}
+              className="text-xs text-muted-foreground"
+            >
+              Dev
+            </Button>
+          )}
+        </div>
+        {showDevLogin && (
+          <div
+            className="fixed top-16 right-4 z-[9999] bg-popover border rounded-md shadow-lg p-3 min-w-48"
+            style={{ pointerEvents: 'auto' }}
+          >
+            <p className="text-xs text-muted-foreground mb-2">
+              Quick dev login:
+            </p>
+            <div className="flex flex-col gap-1">
+              {DEV_USERS.map((u) => (
+                <button
+                  key={u.email}
+                  type="button"
+                  className="text-left px-2 py-1 text-sm hover:bg-accent rounded disabled:opacity-50"
+                  onClick={() => {
+                    console.log("Button clicked for:", u.email);
+                    handleDevSignIn(u.email);
+                  }}
+                  disabled={devLoading}
+                >
+                  {u.name}
+                </button>
+              ))}
+            </div>
+            {devLoading && (
+              <p className="text-xs text-muted-foreground mt-2">Signing in...</p>
+            )}
+            {loginError && (
+              <p className="text-xs text-destructive mt-2">{loginError}</p>
+            )}
+          </div>
+        )}
+      </div>
     );
   }
 

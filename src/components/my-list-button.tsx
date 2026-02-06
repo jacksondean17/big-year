@@ -45,6 +45,16 @@ export function MyListButton({
         data: { user },
       } = await supabase.auth.getUser();
       if (user) {
+        // Ensure profile exists (fallback for users created before profiles table)
+        await supabase.from("profiles").upsert(
+          {
+            id: user.id,
+            display_name:
+              user.user_metadata?.full_name || user.email || "Anonymous",
+            avatar_url: user.user_metadata?.avatar_url || null,
+          },
+          { onConflict: "id" }
+        );
         await supabase
           .from("user_challenges")
           .insert({ user_id: user.id, challenge_id: challengeId });

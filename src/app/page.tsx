@@ -2,17 +2,22 @@ import { getChallenges } from "@/lib/challenges";
 import { getUserChallengeIds } from "@/lib/my-list";
 import { getVoteCounts, getUserVotes } from "@/lib/votes";
 import { getUserNoteChallengeIds } from "@/lib/notes";
+import { getSaveCounts, getSaversForChallenges } from "@/lib/savers";
 import { ChallengeList } from "@/components/challenge-list";
 
 export default async function Home() {
-  const [challenges, savedIds, voteCounts, userVotes, noteIds] =
+  const [challenges, savedIds, voteCounts, userVotes, noteIds, saveCounts] =
     await Promise.all([
       getChallenges(),
       getUserChallengeIds(),
       getVoteCounts(),
       getUserVotes(),
       getUserNoteChallengeIds(),
+      getSaveCounts(),
     ]);
+
+  const challengeIds = challenges.map((c) => c.id);
+  const saversMap = await getSaversForChallenges(challengeIds);
 
   const voteScores = Object.fromEntries(voteCounts);
   const userVoteMap = Object.fromEntries(userVotes);
@@ -31,6 +36,8 @@ export default async function Home() {
         voteScores={voteScores}
         userVotes={userVoteMap}
         userNoteIds={[...noteIds]}
+        saveCounts={Object.fromEntries(saveCounts)}
+        saversMap={Object.fromEntries(saversMap)}
       />
     </div>
   );
