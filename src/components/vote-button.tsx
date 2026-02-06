@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
@@ -11,6 +11,7 @@ interface VoteButtonProps {
   initialScore: number;
   initialUserVote: UserVoteType;
   size?: "sm" | "default";
+  isLoggedIn?: boolean;
 }
 
 export function VoteButton({
@@ -18,18 +19,12 @@ export function VoteButton({
   initialScore,
   initialUserVote,
   size = "sm",
+  isLoggedIn = false,
 }: VoteButtonProps) {
   const [score, setScore] = useState(initialScore);
   const [userVote, setUserVote] = useState<UserVoteType>(initialUserVote);
   const [loading, setLoading] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const supabase = createClient();
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setIsLoggedIn(!!user);
-    });
-  }, [supabase]);
 
   const handleVote = async (voteType: 1 | -1, e: React.MouseEvent) => {
     e.preventDefault();
@@ -84,7 +79,7 @@ export function VoteButton({
     setLoading(false);
   };
 
-  const showButtons = isLoggedIn === true;
+  const showButtons = isLoggedIn;
   const iconSize = size === "sm" ? "size-3" : "size-4";
   const buttonSize = size === "sm" ? "size-6" : "size-8";
 

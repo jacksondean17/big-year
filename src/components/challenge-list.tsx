@@ -16,6 +16,7 @@ export function ChallengeList({
   userNoteIds,
   saveCounts,
   saversMap,
+  isLoggedIn = false,
 }: {
   challenges: Challenge[];
   savedChallengeIds?: number[];
@@ -24,6 +25,7 @@ export function ChallengeList({
   userNoteIds?: number[];
   saveCounts?: Record<number, number>;
   saversMap?: Record<number, ChallengeSaver[]>;
+  isLoggedIn?: boolean;
 }) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(
@@ -97,7 +99,7 @@ export function ChallengeList({
             userVote={(userVotes[challenge.id] as 1 | -1) ?? null}
             hasNote={userNoteIds?.includes(challenge.id)}
             saveCount={saveCounts?.[challenge.id] ?? 0}
-            savers={saversMap?.[challenge.id] ?? []}
+            isLoggedIn={isLoggedIn}
           />
         ))}
       </div>

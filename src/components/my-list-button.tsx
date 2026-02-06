@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Bookmark } from "lucide-react";
@@ -9,25 +9,20 @@ interface MyListButtonProps {
   challengeId: number;
   initialSaved?: boolean;
   size?: "sm" | "default";
+  isLoggedIn?: boolean;
 }
 
 export function MyListButton({
   challengeId,
   initialSaved = false,
   size = "sm",
+  isLoggedIn = false,
 }: MyListButtonProps) {
   const [saved, setSaved] = useState(initialSaved);
   const [loading, setLoading] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const supabase = createClient();
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setIsLoggedIn(!!user);
-    });
-  }, [supabase]);
-
-  if (isLoggedIn === null || !isLoggedIn) return null;
+  if (!isLoggedIn) return null;
 
   const toggle = async (e: React.MouseEvent) => {
     e.preventDefault();

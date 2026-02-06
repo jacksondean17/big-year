@@ -28,6 +28,7 @@ export function ChallengeCard({
   hasNote = false,
   saveCount = 0,
   savers = [],
+  isLoggedIn = false,
 }: {
   challenge: Challenge;
   isSaved?: boolean;
@@ -36,6 +37,7 @@ export function ChallengeCard({
   hasNote?: boolean;
   saveCount?: number;
   savers?: ChallengeSaver[];
+  isLoggedIn?: boolean;
 }) {
   return (
     <Link href={`/challenges/${challenge.id}`}>
@@ -52,11 +54,12 @@ export function ChallengeCard({
                   aria-label="Has private note"
                 />
               )}
-              <SaversCount count={saveCount} savers={savers} size="sm" />
+              <SaversCount count={saveCount} challengeId={challenge.id} savers={savers} size="sm" />
               <MyListButton
                 challengeId={challenge.id}
                 initialSaved={isSaved}
                 size="sm"
+                isLoggedIn={isLoggedIn}
               />
             </div>
           </div>
@@ -85,6 +88,7 @@ export function ChallengeCard({
               initialScore={score}
               initialUserVote={userVote}
               size="sm"
+              isLoggedIn={isLoggedIn}
             />
           </div>
         </CardContent>

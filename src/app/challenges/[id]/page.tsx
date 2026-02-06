@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 import { getChallengeById } from "@/lib/challenges";
 import { getUserChallengeIds } from "@/lib/my-list";
 import {
@@ -36,6 +37,10 @@ export default async function ChallengePage({
   if (!challenge) {
     notFound();
   }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const isLoggedIn = !!user;
 
   const [savedIds, voteScore, userVote, userNote, savers, saveCount] =
     await Promise.all([
@@ -74,10 +79,12 @@ export default async function ChallengePage({
                 challengeId={challenge.id}
                 initialScore={voteScore}
                 initialUserVote={userVote}
+                isLoggedIn={isLoggedIn}
               />
               <MyListButton
                 challengeId={challenge.id}
                 initialSaved={isSaved}
+                isLoggedIn={isLoggedIn}
               />
             </div>
           </div>
