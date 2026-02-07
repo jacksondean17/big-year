@@ -5,7 +5,7 @@ export async function getAllUsersWithSaveCounts(): Promise<UserWithSaveCount[]> 
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, display_name, avatar_url, created_at, user_challenges(count)")
+    .select("id, display_name, avatar_url, guild_nickname, created_at, user_challenges(count)")
     .order("display_name");
 
   if (error) throw error;
@@ -14,6 +14,7 @@ export async function getAllUsersWithSaveCounts(): Promise<UserWithSaveCount[]> 
     id: user.id,
     display_name: user.display_name,
     avatar_url: user.avatar_url,
+    guild_nickname: user.guild_nickname,
     created_at: user.created_at,
     save_count: user.user_challenges?.[0]?.count ?? 0,
   }));
@@ -25,7 +26,7 @@ export async function getUserById(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, display_name, avatar_url")
+    .select("id, display_name, avatar_url, guild_nickname")
     .eq("id", userId)
     .single();
 

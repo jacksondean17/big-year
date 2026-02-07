@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bookmark } from "lucide-react";
-import type { UserWithSaveCount } from "@/lib/types";
+import { getDisplayName, type UserWithSaveCount } from "@/lib/types";
 
 interface UserCardProps {
   user: UserWithSaveCount;
@@ -19,17 +19,17 @@ export function UserCard({ user, isCurrentUser }: UserCardProps) {
             {user.avatar_url && (
               <AvatarImage
                 src={user.avatar_url}
-                alt={user.display_name}
+                alt={getDisplayName(user)}
               />
             )}
             <AvatarFallback className="text-lg">
-              {user.display_name.charAt(0).toUpperCase()}
+              {getDisplayName(user).charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-medium truncate">
-                {user.display_name}
+                {getDisplayName(user)}
               </span>
               {isCurrentUser && (
                 <Badge variant="secondary" className="text-xs shrink-0">

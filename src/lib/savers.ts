@@ -47,7 +47,7 @@ export async function getSaversForChallenges(
       challenge_id,
       user_id,
       added_at,
-      profiles(id, display_name, avatar_url)
+      profiles(id, display_name, avatar_url, guild_nickname)
     `
     )
     .in("challenge_id", challengeIds)
@@ -90,7 +90,7 @@ export async function getAllChallengeSavers(
       `
       user_id,
       added_at,
-      profiles(id, display_name, avatar_url)
+      profiles(id, display_name, avatar_url, guild_nickname)
     `
     )
     .eq("challenge_id", challengeId)

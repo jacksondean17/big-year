@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { UserCard } from "./user-card";
-import type { UserWithSaveCount, UserSortOption } from "@/lib/types";
+import { getDisplayName, type UserWithSaveCount, type UserSortOption } from "@/lib/types";
 
 interface UserListProps {
   users: UserWithSaveCount[];
@@ -21,14 +21,14 @@ export function UserList({ users, currentUserId }: UserListProps) {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter((u) =>
-        u.display_name.toLowerCase().includes(q)
+        getDisplayName(u).toLowerCase().includes(q)
       );
     }
 
     switch (selectedSort) {
       case "name":
         result = [...result].sort((a, b) =>
-          a.display_name.localeCompare(b.display_name)
+          getDisplayName(a).localeCompare(getDisplayName(b))
         );
         break;
       case "saves":

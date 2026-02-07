@@ -11,8 +11,14 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      // Sync Discord nickname after successful login (fire and forget)
-      syncDiscordNickname().catch(console.error);
+      // Sync Discord nickname after successful login
+      // Must await to ensure it completes before serverless function terminates
+      try {
+        const result = await syncDiscordNickname();
+        console.log("[auth/callback] Discord sync result:", result);
+      } catch (e) {
+        console.error("[auth/callback] Discord sync failed:", e);
+      }
 
       return NextResponse.redirect(`${origin}${next}`);
     }

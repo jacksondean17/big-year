@@ -20,7 +20,7 @@ export interface UserProfile {
 }
 
 /** Returns the best display name for a user (guild nickname preferred) */
-export function getDisplayName(profile: UserProfile): string {
+export function getDisplayName(profile: { display_name: string; guild_nickname?: string | null }): string {
   return profile.guild_nickname ?? profile.display_name;
 }
 
@@ -35,6 +35,7 @@ export interface UserWithSaveCount {
   id: string;
   display_name: string;
   avatar_url: string | null;
+  guild_nickname?: string | null;
   save_count: number;
   created_at: string;
 }

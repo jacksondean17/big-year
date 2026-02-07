@@ -41,6 +41,8 @@ export async function syncDiscordNickname(): Promise<{
   nickname: string | null;
   error?: string;
 }> {
+  console.log("[syncDiscordNickname] Starting sync...");
+
   const supabase = await createClient();
 
   // Get current user with full details
@@ -50,13 +52,18 @@ export async function syncDiscordNickname(): Promise<{
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
+    console.log("[syncDiscordNickname] Not authenticated:", authError?.message);
     return { success: false, nickname: null, error: "Not authenticated" };
   }
+
+  console.log("[syncDiscordNickname] User:", user.id);
+  console.log("[syncDiscordNickname] Identities:", JSON.stringify(user.identities?.map(i => ({ provider: i.provider, id: i.id }))));
 
   // Get Discord ID from user object (not profile)
   const discordId = getDiscordId(user);
 
   if (!discordId) {
+    console.log("[syncDiscordNickname] No Discord ID found in user object");
     return {
       success: false,
       nickname: null,
@@ -64,8 +71,13 @@ export async function syncDiscordNickname(): Promise<{
     };
   }
 
+  console.log("[syncDiscordNickname] Discord ID:", discordId);
+  console.log("[syncDiscordNickname] Bot token present:", !!process.env.DISCORD_BOT_TOKEN);
+  console.log("[syncDiscordNickname] Guild ID:", process.env.DISCORD_GUILD_ID);
+
   // Fetch nickname from Discord API
   const nickname = await getGuildDisplayName(discordId);
+  console.log("[syncDiscordNickname] Fetched nickname:", nickname);
 
   // Update profile with both discord_id and nickname
   const { error: updateError } = await supabase
@@ -77,6 +89,7 @@ export async function syncDiscordNickname(): Promise<{
     .eq("id", user.id);
 
   if (updateError) {
+    console.log("[syncDiscordNickname] Update error:", updateError.message);
     return {
       success: false,
       nickname: null,
@@ -84,5 +97,6 @@ export async function syncDiscordNickname(): Promise<{
     };
   }
 
+  console.log("[syncDiscordNickname] Success! Nickname:", nickname);
   return { success: true, nickname };
 }

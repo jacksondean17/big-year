@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getUserById, getUserChallengesByUserId } from "@/lib/users";
+import { getDisplayName } from "@/lib/types";
 import { getVoteCounts, getUserVotes } from "@/lib/votes";
 import { getSaveCounts } from "@/lib/savers";
 import { getUserChallengeIds } from "@/lib/my-list";
@@ -59,17 +60,17 @@ export default async function UserProfilePage({
               {userProfile.avatar_url && (
                 <AvatarImage
                   src={userProfile.avatar_url}
-                  alt={userProfile.display_name}
+                  alt={getDisplayName(userProfile)}
                 />
               )}
               <AvatarFallback className="text-2xl">
-                {userProfile.display_name.charAt(0).toUpperCase()}
+                {getDisplayName(userProfile).charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div>
               <div className="flex items-center gap-2">
                 <CardTitle className="text-2xl">
-                  {userProfile.display_name}
+                  {getDisplayName(userProfile)}
                 </CardTitle>
                 {isOwnProfile && (
                   <Badge variant="secondary">This is you</Badge>
