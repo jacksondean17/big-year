@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LogIn, LogOut } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
+import { syncDiscordNickname } from "@/app/actions/discord";
 
 // Dev-only test users for quick login
 const DEV_USERS = [
@@ -26,12 +27,37 @@ export function AuthButton() {
     (window.location.hostname === "localhost" ||
       window.location.hostname === "127.0.0.1");
 
+  // Track if we've already synced to avoid duplicate calls
+  const hasSyncedRef = useRef(false);
+
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
+
+      // Sync Discord nickname when user signs in
+      if (event === "SIGNED_IN" && session?.user && !hasSyncedRef.current) {
+        hasSyncedRef.current = true;
+        console.log("[AuthButton] User signed in, syncing Discord nickname...");
+        syncDiscordNickname()
+          .then((result) => {
+            console.log("[AuthButton] Discord sync result:", result);
+            if (result.success && result.nickname) {
+              // Reload to show updated nickname
+              window.location.reload();
+            }
+          })
+          .catch((err) => {
+            console.error("[AuthButton] Discord sync error:", err);
+          });
+      }
+
+      // Reset sync flag on sign out
+      if (event === "SIGNED_OUT") {
+        hasSyncedRef.current = false;
+      }
     });
     return () => subscription.unsubscribe();
   }, [supabase]);
