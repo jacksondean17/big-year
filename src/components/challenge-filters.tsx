@@ -105,6 +105,13 @@ export function ChallengeFilters({
           >
             Popular
           </Button>
+          <Button
+            variant={selectedSort === "controversial" ? "default" : "outline"}
+            size="sm"
+            onClick={() => onSortChange("controversial")}
+          >
+            Controversial
+          </Button>
         </div>
       </div>
     </div>

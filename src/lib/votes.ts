@@ -1,17 +1,20 @@
 import { createClient } from "./supabase/server";
-import type { UserVoteType } from "./types";
+import type { UserVoteType, VoteData } from "./types";
 
-export async function getVoteCounts(): Promise<Map<number, number>> {
+export async function getVoteCounts(): Promise<Map<number, VoteData>> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("challenge_vote_counts")
-    .select("challenge_id, score");
+    .select("challenge_id, upvotes, downvotes");
 
   if (error) throw error;
 
-  const map = new Map<number, number>();
+  const map = new Map<number, VoteData>();
   for (const row of data ?? []) {
-    map.set(row.challenge_id, row.score);
+    map.set(row.challenge_id, {
+      upvotes: row.upvotes ?? 0,
+      downvotes: row.downvotes ?? 0,
+    });
   }
   return map;
 }
@@ -39,16 +42,16 @@ export async function getUserVotes(): Promise<Map<number, 1 | -1>> {
 
 export async function getVoteCountForChallenge(
   challengeId: number
-): Promise<number> {
+): Promise<VoteData> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("challenge_vote_counts")
-    .select("score")
+    .select("upvotes, downvotes")
     .eq("challenge_id", challengeId)
     .single();
 
-  if (error) return 0;
-  return data?.score ?? 0;
+  if (error) return { upvotes: 0, downvotes: 0 };
+  return { upvotes: data?.upvotes ?? 0, downvotes: data?.downvotes ?? 0 };
 }
 
 export async function getUserVoteForChallenge(

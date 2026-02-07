@@ -41,7 +41,7 @@ export default async function UserProfilePage({
       getUserNoteChallengeIds(),
     ]);
 
-  const voteScores = Object.fromEntries(voteCounts);
+  const voteDataMap = Object.fromEntries(voteCounts);
   const userVoteMap = Object.fromEntries(userVotes);
   const saveCountMap = Object.fromEntries(saveCounts);
 
@@ -99,7 +99,8 @@ export default async function UserProfilePage({
                 key={challenge.id}
                 challenge={challenge}
                 isSaved={myListIds.has(challenge.id)}
-                score={voteScores[challenge.id] ?? 0}
+                upvotes={voteDataMap[challenge.id]?.upvotes ?? 0}
+                downvotes={voteDataMap[challenge.id]?.downvotes ?? 0}
                 userVote={(userVoteMap[challenge.id] as 1 | -1) ?? null}
                 hasNote={noteIds.has(challenge.id)}
                 saveCount={saveCountMap[challenge.id] ?? 0}

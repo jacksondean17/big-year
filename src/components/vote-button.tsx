@@ -8,7 +8,8 @@ import type { UserVoteType } from "@/lib/types";
 
 interface VoteButtonProps {
   challengeId: number;
-  initialScore: number;
+  initialUpvotes: number;
+  initialDownvotes: number;
   initialUserVote: UserVoteType;
   size?: "sm" | "default";
   isLoggedIn?: boolean;
@@ -16,12 +17,14 @@ interface VoteButtonProps {
 
 export function VoteButton({
   challengeId,
-  initialScore,
+  initialUpvotes,
+  initialDownvotes,
   initialUserVote,
   size = "sm",
   isLoggedIn = false,
 }: VoteButtonProps) {
-  const [score, setScore] = useState(initialScore);
+  const [upvotes, setUpvotes] = useState(initialUpvotes);
+  const [downvotes, setDownvotes] = useState(initialDownvotes);
   const [userVote, setUserVote] = useState<UserVoteType>(initialUserVote);
   const [loading, setLoading] = useState(false);
   const supabase = createClient();
@@ -47,7 +50,8 @@ export function VoteButton({
         .delete()
         .eq("user_id", user.id)
         .eq("challenge_id", challengeId);
-      setScore((prev) => prev - voteType);
+      if (voteType === 1) setUpvotes((prev) => prev - 1);
+      else setDownvotes((prev) => prev - 1);
       setUserVote(null);
     } else if (userVote === null) {
       // New vote: insert
@@ -58,7 +62,8 @@ export function VoteButton({
           challenge_id: challengeId,
           vote_type: voteType,
         });
-      setScore((prev) => prev + voteType);
+      if (voteType === 1) setUpvotes((prev) => prev + 1);
+      else setDownvotes((prev) => prev + 1);
       setUserVote(voteType);
     } else {
       // Switch vote: upsert
@@ -72,7 +77,13 @@ export function VoteButton({
           },
           { onConflict: "user_id,challenge_id" }
         );
-      setScore((prev) => prev - userVote + voteType);
+      if (voteType === 1) {
+        setUpvotes((prev) => prev + 1);
+        setDownvotes((prev) => prev - 1);
+      } else {
+        setUpvotes((prev) => prev - 1);
+        setDownvotes((prev) => prev + 1);
+      }
       setUserVote(voteType);
     }
 
@@ -85,40 +96,51 @@ export function VoteButton({
 
   return (
     <div
-      className="flex items-center gap-0.5"
+      className="flex items-center gap-1.5"
       onClick={(e) => e.preventDefault()}
     >
-      {showButtons && (
-        <Button
-          variant={userVote === 1 ? "default" : "ghost"}
-          size="icon"
-          className={buttonSize}
-          onClick={(e) => handleVote(1, e)}
-          disabled={loading}
-          aria-label="Upvote"
-        >
-          <ThumbsUp
-            className={`${iconSize} ${userVote === 1 ? "fill-current" : ""}`}
-          />
-        </Button>
-      )}
-      <span className="min-w-[2ch] text-center text-sm font-medium tabular-nums">
-        {score}
-      </span>
-      {showButtons && (
-        <Button
-          variant={userVote === -1 ? "default" : "ghost"}
-          size="icon"
-          className={buttonSize}
-          onClick={(e) => handleVote(-1, e)}
-          disabled={loading}
-          aria-label="Downvote"
-        >
-          <ThumbsDown
-            className={`${iconSize} ${userVote === -1 ? "fill-current" : ""}`}
-          />
-        </Button>
-      )}
+      <div className="flex items-center gap-0.5 rounded-md border px-1 py-0.5">
+        {showButtons ? (
+          <Button
+            variant={userVote === 1 ? "default" : "ghost"}
+            size="icon"
+            className={buttonSize}
+            onClick={(e) => handleVote(1, e)}
+            disabled={loading}
+            aria-label="Upvote"
+          >
+            <ThumbsUp
+              className={`${iconSize} ${userVote === 1 ? "fill-current" : ""}`}
+            />
+          </Button>
+        ) : (
+          <ThumbsUp className={`${iconSize} text-muted-foreground`} />
+        )}
+        <span className="min-w-[2ch] text-center text-sm font-medium tabular-nums">
+          {upvotes}
+        </span>
+      </div>
+      <div className="flex items-center gap-0.5 rounded-md border px-1 py-0.5">
+        {showButtons ? (
+          <Button
+            variant={userVote === -1 ? "default" : "ghost"}
+            size="icon"
+            className={buttonSize}
+            onClick={(e) => handleVote(-1, e)}
+            disabled={loading}
+            aria-label="Downvote"
+          >
+            <ThumbsDown
+              className={`${iconSize} ${userVote === -1 ? "fill-current" : ""}`}
+            />
+          </Button>
+        ) : (
+          <ThumbsDown className={`${iconSize} text-muted-foreground`} />
+        )}
+        <span className="min-w-[2ch] text-center text-sm font-medium tabular-nums">
+          {downvotes}
+        </span>
+      </div>
     </div>
   );
 }

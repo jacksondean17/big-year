@@ -42,7 +42,7 @@ export default async function ChallengePage({
   const { data: { user } } = await supabase.auth.getUser();
   const isLoggedIn = !!user;
 
-  const [savedIds, voteScore, userVote, userNote, savers, saveCount] =
+  const [savedIds, voteData, userVote, userNote, savers, saveCount] =
     await Promise.all([
       getUserChallengeIds(),
       getVoteCountForChallenge(challenge.id),
@@ -77,7 +77,8 @@ export default async function ChallengePage({
             <div className="flex items-center gap-2">
               <VoteButton
                 challengeId={challenge.id}
-                initialScore={voteScore}
+                initialUpvotes={voteData.upvotes}
+                initialDownvotes={voteData.downvotes}
                 initialUserVote={userVote}
                 isLoggedIn={isLoggedIn}
               />

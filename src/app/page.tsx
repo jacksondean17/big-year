@@ -21,7 +21,7 @@ export default async function Home() {
       getSaveCounts(),
     ]);
 
-  const voteScores = Object.fromEntries(voteCounts);
+  const voteDataMap = Object.fromEntries(voteCounts);
   const userVoteMap = Object.fromEntries(userVotes);
 
   return (
@@ -35,7 +35,7 @@ export default async function Home() {
       <ChallengeList
         challenges={challenges}
         savedChallengeIds={[...savedIds]}
-        voteScores={voteScores}
+        voteData={voteDataMap}
         userVotes={userVoteMap}
         userNoteIds={[...noteIds]}
         saveCounts={Object.fromEntries(saveCounts)}

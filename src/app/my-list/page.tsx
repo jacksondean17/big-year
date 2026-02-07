@@ -26,7 +26,7 @@ export default async function MyListPage() {
       getSaveCounts(),
     ]);
 
-  const voteScores = Object.fromEntries(voteCounts);
+  const voteDataMap = Object.fromEntries(voteCounts);
   const userVoteMap = Object.fromEntries(userVotes);
 
   return (
@@ -51,7 +51,8 @@ export default async function MyListPage() {
               key={item.challenge_id}
               challenge={item.challenges as Challenge}
               isSaved={true}
-              score={voteScores[item.challenge_id] ?? 0}
+              upvotes={voteDataMap[item.challenge_id]?.upvotes ?? 0}
+              downvotes={voteDataMap[item.challenge_id]?.downvotes ?? 0}
               userVote={(userVoteMap[item.challenge_id] as 1 | -1) ?? null}
               hasNote={noteIds.has(item.challenge_id)}
               saveCount={saveCounts.get(item.challenge_id) ?? 0}

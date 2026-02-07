@@ -2,16 +2,23 @@
 
 import { useState, useMemo } from "react";
 import { Challenge } from "@/lib/types";
-import type { SortOption, ChallengeSaver } from "@/lib/types";
+import type { SortOption, VoteData, ChallengeSaver } from "@/lib/types";
 import { ChallengeCard } from "./challenge-card";
 import { ChallengeFilters } from "./challenge-filters";
 
 const DIFFICULTIES = ["Easy", "Medium", "Hard"];
 
+function getControversy(v: VoteData): number {
+  const total = v.upvotes + v.downvotes;
+  const max = Math.max(v.upvotes, v.downvotes);
+  if (max === 0) return 0;
+  return (Math.min(v.upvotes, v.downvotes) / max) * total;
+}
+
 export function ChallengeList({
   challenges,
   savedChallengeIds,
-  voteScores,
+  voteData,
   userVotes,
   userNoteIds,
   saveCounts,
@@ -20,7 +27,7 @@ export function ChallengeList({
 }: {
   challenges: Challenge[];
   savedChallengeIds?: number[];
-  voteScores: Record<number, number>;
+  voteData: Record<number, VoteData>;
   userVotes: Record<number, number>;
   userNoteIds?: number[];
   saveCounts?: Record<number, number>;
@@ -55,9 +62,19 @@ export function ChallengeList({
     });
 
     if (selectedSort === "popular") {
-      result = [...result].sort(
-        (a, b) => (voteScores[b.id] ?? 0) - (voteScores[a.id] ?? 0)
-      );
+      result = [...result].sort((a, b) => {
+        const aData = voteData[a.id] ?? { upvotes: 0, downvotes: 0 };
+        const bData = voteData[b.id] ?? { upvotes: 0, downvotes: 0 };
+        const aScore = aData.upvotes - aData.downvotes;
+        const bScore = bData.upvotes - bData.downvotes;
+        return bScore - aScore;
+      });
+    } else if (selectedSort === "controversial") {
+      result = [...result].sort((a, b) => {
+        const aData = voteData[a.id] ?? { upvotes: 0, downvotes: 0 };
+        const bData = voteData[b.id] ?? { upvotes: 0, downvotes: 0 };
+        return getControversy(bData) - getControversy(aData);
+      });
     }
 
     return result;
@@ -67,7 +84,7 @@ export function ChallengeList({
     selectedDifficulty,
     searchQuery,
     selectedSort,
-    voteScores,
+    voteData,
   ]);
 
   return (
@@ -90,18 +107,22 @@ export function ChallengeList({
       </p>
 
       <div className="challenge-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((challenge) => (
-          <ChallengeCard
-            key={challenge.id}
-            challenge={challenge}
-            isSaved={savedChallengeIds?.includes(challenge.id)}
-            score={voteScores[challenge.id] ?? 0}
-            userVote={(userVotes[challenge.id] as 1 | -1) ?? null}
-            hasNote={userNoteIds?.includes(challenge.id)}
-            saveCount={saveCounts?.[challenge.id] ?? 0}
-            isLoggedIn={isLoggedIn}
-          />
-        ))}
+        {filtered.map((challenge) => {
+          const v = voteData[challenge.id] ?? { upvotes: 0, downvotes: 0 };
+          return (
+            <ChallengeCard
+              key={challenge.id}
+              challenge={challenge}
+              isSaved={savedChallengeIds?.includes(challenge.id)}
+              upvotes={v.upvotes}
+              downvotes={v.downvotes}
+              userVote={(userVotes[challenge.id] as 1 | -1) ?? null}
+              hasNote={userNoteIds?.includes(challenge.id)}
+              saveCount={saveCounts?.[challenge.id] ?? 0}
+              isLoggedIn={isLoggedIn}
+            />
+          );
+        })}
       </div>
 
       {filtered.length === 0 && (

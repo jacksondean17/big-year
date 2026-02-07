@@ -23,7 +23,8 @@ const difficultyColor: Record<string, string> = {
 export function ChallengeCard({
   challenge,
   isSaved,
-  score = 0,
+  upvotes = 0,
+  downvotes = 0,
   userVote = null,
   hasNote = false,
   saveCount = 0,
@@ -32,7 +33,8 @@ export function ChallengeCard({
 }: {
   challenge: Challenge;
   isSaved?: boolean;
-  score?: number;
+  upvotes?: number;
+  downvotes?: number;
   userVote?: UserVoteType;
   hasNote?: boolean;
   saveCount?: number;
@@ -85,7 +87,8 @@ export function ChallengeCard({
             </p>
             <VoteButton
               challengeId={challenge.id}
-              initialScore={score}
+              initialUpvotes={upvotes}
+              initialDownvotes={downvotes}
               initialUserVote={userVote}
               size="sm"
               isLoggedIn={isLoggedIn}

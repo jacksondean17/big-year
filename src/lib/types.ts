@@ -10,7 +10,12 @@ export interface Challenge {
 
 export type UserVoteType = 1 | -1 | null;
 
-export type SortOption = "default" | "popular";
+export interface VoteData {
+  upvotes: number;
+  downvotes: number;
+}
+
+export type SortOption = "default" | "popular" | "controversial";
 
 export interface UserProfile {
   id: string;
