@@ -14,7 +14,7 @@ export async function getSaversForChallenge(
     .select(`
       user_id,
       added_at,
-      profiles(id, display_name, avatar_url)
+      profiles(id, display_name, avatar_url, guild_nickname)
     `)
     .eq("challenge_id", challengeId)
     .order("added_at", { ascending: false })

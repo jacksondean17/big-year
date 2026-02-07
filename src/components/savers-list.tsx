@@ -1,7 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users } from "lucide-react";
-import type { ChallengeSaver } from "@/lib/types";
+import { getDisplayName, type ChallengeSaver } from "@/lib/types";
 
 interface SaversListProps {
   savers: ChallengeSaver[];
@@ -33,15 +33,15 @@ export function SaversList({ savers, count }: SaversListProps) {
                 {saver.profiles.avatar_url && (
                   <AvatarImage
                     src={saver.profiles.avatar_url}
-                    alt={saver.isCurrentUser ? "You" : saver.profiles.display_name}
+                    alt={saver.isCurrentUser ? "You" : getDisplayName(saver.profiles)}
                   />
                 )}
                 <AvatarFallback className="text-xs">
-                  {saver.isCurrentUser ? "Y" : saver.profiles.display_name.charAt(0).toUpperCase()}
+                  {saver.isCurrentUser ? "Y" : getDisplayName(saver.profiles).charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <span className={`text-sm ${saver.isCurrentUser ? "font-medium" : ""}`}>
-                {saver.isCurrentUser ? "You" : saver.profiles.display_name}
+                {saver.isCurrentUser ? "You" : getDisplayName(saver.profiles)}
               </span>
             </div>
           ))}

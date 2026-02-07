@@ -8,7 +8,7 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type { ChallengeSaver } from "@/lib/types";
+import { getDisplayName, type ChallengeSaver } from "@/lib/types";
 import { getSaversForChallenge } from "@/app/actions/savers";
 
 interface SaversCountProps {
@@ -75,15 +75,15 @@ export function SaversCount({ count, challengeId, savers: initialSavers, size = 
                     {saver.profiles.avatar_url && (
                       <AvatarImage
                         src={saver.profiles.avatar_url}
-                        alt={saver.isCurrentUser ? "You" : saver.profiles.display_name}
+                        alt={saver.isCurrentUser ? "You" : getDisplayName(saver.profiles)}
                       />
                     )}
                     <AvatarFallback className="text-xs">
-                      {saver.isCurrentUser ? "Y" : saver.profiles.display_name.charAt(0).toUpperCase()}
+                      {saver.isCurrentUser ? "Y" : getDisplayName(saver.profiles).charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <span className={`truncate text-sm ${saver.isCurrentUser ? "font-medium" : ""}`}>
-                    {saver.isCurrentUser ? "You" : saver.profiles.display_name}
+                    {saver.isCurrentUser ? "You" : getDisplayName(saver.profiles)}
                   </span>
                 </div>
               ))}
