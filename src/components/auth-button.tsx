@@ -37,7 +37,8 @@ export function AuthButton() {
       setUser(session?.user ?? null);
       setLoading(false);
 
-      // Sync Discord nickname when user signs in
+      // Only sync on an actual new sign-in, not on page load with existing session.
+      // INITIAL_SESSION fires on mount with an existing session — skip that.
       if (event === "SIGNED_IN" && session?.user && !hasSyncedRef.current) {
         hasSyncedRef.current = true;
         console.log("[AuthButton] User signed in, syncing Discord nickname...");
@@ -45,13 +46,17 @@ export function AuthButton() {
           .then((result) => {
             console.log("[AuthButton] Discord sync result:", result);
             if (result.success && result.nickname) {
-              // Reload to show updated nickname
               window.location.reload();
             }
           })
           .catch((err) => {
             console.error("[AuthButton] Discord sync error:", err);
           });
+      }
+
+      // Mark as synced on initial load so we don't trigger on token refresh
+      if (event === "INITIAL_SESSION" && session?.user) {
+        hasSyncedRef.current = true;
       }
 
       // Reset sync flag on sign out
