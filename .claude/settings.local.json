@@ -13,7 +13,10 @@
       "Bash(npx next build:*)",
       "Bash(grep:*)",
       "Bash(npx shadcn@latest add:*)",
-      "Bash(npx supabase:*)"
+      "Bash(npx supabase:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npm run lint:*)"
     ],
     "additionalDirectories": [
       "c:\\Users\\jacks\\git\\big-year\\src\\app\\challenges"
