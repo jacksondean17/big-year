@@ -58,17 +58,26 @@ export default function RootLayout({
             </a>
             <nav className="flex items-center gap-3">
               <Link
+                href="/schedule"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Schedule
+              </Link>
+              <span className="text-border">|</span>
+              <Link
                 href="/users"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 Users
               </Link>
+              <span className="text-border">|</span>
               <Link
                 href="/my-list"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 My List
               </Link>
+              <span className="text-border">|</span>
               <AuthButton />
             </nav>
           </div>

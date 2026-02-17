@@ -40,6 +40,7 @@ src/
 ├── app/
 │   ├── page.tsx              # Home: challenge list
 │   ├── my-list/page.tsx      # User's saved challenges
+│   ├── schedule/page.tsx     # Embedded Google Calendar + subscribe links
 │   ├── users/page.tsx        # All users list
 │   ├── users/[id]/page.tsx   # User profile page
 │   ├── challenges/[id]/      # Challenge detail
@@ -50,6 +51,7 @@ src/
 │   ├── vote-button.tsx       # Upvote/downvote
 │   ├── my-list-button.tsx    # Save/unsave
 │   ├── auth-button.tsx       # Login/logout
+│   ├── calendar-subscribe-buttons.tsx  # Google/iCal/Outlook subscribe buttons
 │   └── user-*.tsx            # User list and cards
 ├── lib/
 │   ├── supabase/{client,server}.ts  # Supabase client setup
@@ -85,6 +87,7 @@ See `.env.local.example`:
 - `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SECRET_KEY` (for seed script)
 - `DISCORD_BOT_TOKEN` / `DISCORD_GUILD_ID` (for guild nickname sync)
+- `NEXT_PUBLIC_GOOGLE_CALENDAR_ID` (for embedded schedule calendar)
 
 ## Patterns to Note
 
