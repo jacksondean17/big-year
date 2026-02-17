@@ -57,6 +57,15 @@ export default function RootLayout({
               The Big Year
             </a>
             <nav className="flex items-center gap-3">
+              <a
+                href="https://docs.google.com/document/d/143Nhx7JKWc2l0QVy8OtCkHPzdZ82VM8NJQ61VgzJtJ4/edit?tab=t.0"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Guide
+              </a>
+              <span className="text-border">|</span>
               <Link
                 href="/schedule"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
