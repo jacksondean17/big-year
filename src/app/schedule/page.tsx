@@ -5,7 +5,7 @@ export default function SchedulePage() {
   const calendarId = process.env.NEXT_PUBLIC_GOOGLE_CALENDAR_ID;
 
   const embedUrl = calendarId
-    ? `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(calendarId)}&mode=AGENDA&bgcolor=%23fff8ee`
+    ? `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(calendarId)}&mode=MONTH&bgcolor=%23fff8ee`
     : null;
 
   const icalUrl = calendarId
