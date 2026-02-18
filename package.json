@@ -10,6 +10,8 @@
     "lint": "eslint",
     "seed": "tsx scripts/seed-challenges.ts",
     "seed:local": "cp .env.local.dev .env.local && tsx scripts/seed-challenges.ts",
+    "sync:challenges": "tsx scripts/sync-challenges.ts",
+    "sync:challenges:local": "cp .env.local.dev .env.local && tsx scripts/sync-challenges.ts",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
