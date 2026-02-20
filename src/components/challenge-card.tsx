@@ -12,7 +12,7 @@ import type { UserVoteType, ChallengeSaver } from "@/lib/types";
 import { MyListButton } from "@/components/my-list-button";
 import { VoteButton } from "@/components/vote-button";
 import { SaversCount } from "@/components/savers-count";
-import { StickyNote } from "lucide-react";
+import { StickyNote, CheckCircle } from "lucide-react";
 
 const difficultyColor: Record<string, string> = {
   Easy: "difficulty-easy",
@@ -27,6 +27,7 @@ export function ChallengeCard({
   downvotes = 0,
   userVote = null,
   hasNote = false,
+  hasVerification = false,
   saveCount = 0,
   savers = [],
   isLoggedIn = false,
@@ -37,6 +38,7 @@ export function ChallengeCard({
   downvotes?: number;
   userVote?: UserVoteType;
   hasNote?: boolean;
+  hasVerification?: boolean;
   saveCount?: number;
   savers?: ChallengeSaver[];
   isLoggedIn?: boolean;
@@ -54,6 +56,12 @@ export function ChallengeCard({
                 <StickyNote
                   className="size-4 fill-amber-200 text-amber-600"
                   aria-label="Has private note"
+                />
+              )}
+              {hasVerification && (
+                <CheckCircle
+                  className="size-4 fill-green-200 text-green-600"
+                  aria-label="Has verification"
                 />
               )}
               <SaversCount count={saveCount} challengeId={challenge.id} savers={savers} size="sm" />

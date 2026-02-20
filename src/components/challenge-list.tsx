@@ -21,6 +21,7 @@ export function ChallengeList({
   voteData,
   userVotes,
   userNoteIds,
+  userVerificationIds,
   saveCounts,
   saversMap,
   isLoggedIn = false,
@@ -30,6 +31,7 @@ export function ChallengeList({
   voteData: Record<number, VoteData>;
   userVotes: Record<number, number>;
   userNoteIds?: number[];
+  userVerificationIds?: number[];
   saveCounts?: Record<number, number>;
   saversMap?: Record<number, ChallengeSaver[]>;
   isLoggedIn?: boolean;
@@ -118,6 +120,7 @@ export function ChallengeList({
               downvotes={v.downvotes}
               userVote={(userVotes[challenge.id] as 1 | -1) ?? null}
               hasNote={userNoteIds?.includes(challenge.id)}
+              hasVerification={userVerificationIds?.includes(challenge.id)}
               saveCount={saveCounts?.[challenge.id] ?? 0}
               isLoggedIn={isLoggedIn}
             />
