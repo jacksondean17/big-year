@@ -46,3 +46,34 @@ export interface UserWithSaveCount {
 }
 
 export type UserSortOption = "name" | "saves" | "recent";
+
+export type VerificationType = 'image' | 'link' | 'text' | 'video';
+
+export interface ChallengeVerification {
+  id: number;
+  user_id: string;
+  challenge_id: number;
+  verification_type: VerificationType;
+
+  // Type-specific fields
+  image_url: string | null;
+  video_url: string | null;
+  link_url: string | null;
+  link_title: string | null;
+  link_description: string | null;
+  link_image_url: string | null;
+  text_content: string | null;
+
+  created_at: string;
+}
+
+export interface VerificationWithProfile extends ChallengeVerification {
+  profiles: UserProfile;
+}
+
+export interface LinkPreviewData {
+  title: string | null;
+  description: string | null;
+  image: string | null;
+  url: string;
+}

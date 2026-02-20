@@ -4,6 +4,7 @@ import { getUserChallenges } from "@/lib/my-list";
 import { getVoteCounts, getUserVotes } from "@/lib/votes";
 import { getUserNoteChallengeIds } from "@/lib/notes";
 import { getSaveCounts } from "@/lib/savers";
+import { getUserVerificationChallengeIds } from "@/lib/verifications";
 import { ChallengeCard } from "@/components/challenge-card";
 import type { Challenge } from "@/lib/types";
 
@@ -17,14 +18,21 @@ export default async function MyListPage() {
     redirect("/");
   }
 
-  const [savedChallenges, voteCounts, userVotes, noteIds, saveCounts] =
-    await Promise.all([
-      getUserChallenges(),
-      getVoteCounts(),
-      getUserVotes(),
-      getUserNoteChallengeIds(),
-      getSaveCounts(),
-    ]);
+  const [
+    savedChallenges,
+    voteCounts,
+    userVotes,
+    noteIds,
+    saveCounts,
+    verificationIds,
+  ] = await Promise.all([
+    getUserChallenges(),
+    getVoteCounts(),
+    getUserVotes(),
+    getUserNoteChallengeIds(),
+    getSaveCounts(),
+    getUserVerificationChallengeIds(),
+  ]);
 
   const voteDataMap = Object.fromEntries(voteCounts);
   const userVoteMap = Object.fromEntries(userVotes);
@@ -55,6 +63,7 @@ export default async function MyListPage() {
               downvotes={voteDataMap[item.challenge_id]?.downvotes ?? 0}
               userVote={(userVoteMap[item.challenge_id] as 1 | -1) ?? null}
               hasNote={noteIds.has(item.challenge_id)}
+              hasVerification={verificationIds.has(item.challenge_id)}
               saveCount={saveCounts.get(item.challenge_id) ?? 0}
               savers={[]}
               isLoggedIn={true}

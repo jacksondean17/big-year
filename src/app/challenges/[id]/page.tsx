@@ -12,6 +12,11 @@ import {
   getAllChallengeSavers,
   getSaveCountForChallenge,
 } from "@/lib/savers";
+import {
+  getUserVerificationsForChallenge,
+  getAllVerificationsForChallenge,
+  getVerificationCountForChallenge,
+} from "@/lib/verifications";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +24,8 @@ import { MyListButton } from "@/components/my-list-button";
 import { VoteButton } from "@/components/vote-button";
 import { ChallengeNote } from "@/components/challenge-note";
 import { SaversList } from "@/components/savers-list";
+import { UserVerifications } from "@/components/user-verifications";
+import { VerificationsList } from "@/components/verifications-list";
 
 const difficultyColor: Record<string, string> = {
   Easy: "bg-green-100 text-green-800",
@@ -42,15 +49,27 @@ export default async function ChallengePage({
   const { data: { user } } = await supabase.auth.getUser();
   const isLoggedIn = !!user;
 
-  const [savedIds, voteData, userVote, userNote, savers, saveCount] =
-    await Promise.all([
-      getUserChallengeIds(),
-      getVoteCountForChallenge(challenge.id),
-      getUserVoteForChallenge(challenge.id),
-      getUserNoteForChallenge(challenge.id),
-      getAllChallengeSavers(challenge.id),
-      getSaveCountForChallenge(challenge.id),
-    ]);
+  const [
+    savedIds,
+    voteData,
+    userVote,
+    userNote,
+    savers,
+    saveCount,
+    userVerifications,
+    allVerifications,
+    verificationCount,
+  ] = await Promise.all([
+    getUserChallengeIds(),
+    getVoteCountForChallenge(challenge.id),
+    getUserVoteForChallenge(challenge.id),
+    getUserNoteForChallenge(challenge.id),
+    getAllChallengeSavers(challenge.id),
+    getSaveCountForChallenge(challenge.id),
+    getUserVerificationsForChallenge(challenge.id),
+    getAllVerificationsForChallenge(challenge.id),
+    getVerificationCountForChallenge(challenge.id),
+  ]);
   const isSaved = savedIds.has(challenge.id);
 
   return (
@@ -118,6 +137,23 @@ export default async function ChallengePage({
           />
         </CardContent>
       </Card>
+
+      {isLoggedIn && user && (
+        <div className="mt-6">
+          <UserVerifications
+            challengeId={challenge.id}
+            userVerifications={userVerifications}
+            userId={user.id}
+          />
+        </div>
+      )}
+
+      <div className="mt-6">
+        <VerificationsList
+          verifications={allVerifications}
+          count={verificationCount}
+        />
+      </div>
 
       <div className="mt-6">
         <SaversList savers={savers} count={saveCount} />

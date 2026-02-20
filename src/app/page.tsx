@@ -3,6 +3,7 @@ import { getUserChallengeIds } from "@/lib/my-list";
 import { getVoteCounts, getUserVotes } from "@/lib/votes";
 import { getUserNoteChallengeIds } from "@/lib/notes";
 import { getSaveCounts } from "@/lib/savers";
+import { getUserVerificationChallengeIds } from "@/lib/verifications";
 import { ChallengeList } from "@/components/challenge-list";
 import { createClient } from "@/lib/supabase/server";
 
@@ -11,15 +12,23 @@ export default async function Home() {
   const { data: { user } } = await supabase.auth.getUser();
   const isLoggedIn = !!user;
 
-  const [challenges, savedIds, voteCounts, userVotes, noteIds, saveCounts] =
-    await Promise.all([
-      getChallenges(),
-      getUserChallengeIds(),
-      getVoteCounts(),
-      getUserVotes(),
-      getUserNoteChallengeIds(),
-      getSaveCounts(),
-    ]);
+  const [
+    challenges,
+    savedIds,
+    voteCounts,
+    userVotes,
+    noteIds,
+    saveCounts,
+    verificationIds,
+  ] = await Promise.all([
+    getChallenges(),
+    getUserChallengeIds(),
+    getVoteCounts(),
+    getUserVotes(),
+    getUserNoteChallengeIds(),
+    getSaveCounts(),
+    getUserVerificationChallengeIds(),
+  ]);
 
   const voteDataMap = Object.fromEntries(voteCounts);
   const userVoteMap = Object.fromEntries(userVotes);
@@ -38,6 +47,7 @@ export default async function Home() {
         voteData={voteDataMap}
         userVotes={userVoteMap}
         userNoteIds={[...noteIds]}
+        userVerificationIds={[...verificationIds]}
         saveCounts={Object.fromEntries(saveCounts)}
         saversMap={{}}
         isLoggedIn={isLoggedIn}
