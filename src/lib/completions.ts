@@ -38,6 +38,21 @@ export async function getUserCompletions(): Promise<Completion[]> {
   return (data ?? []) as Completion[];
 }
 
+export async function getCompletionCounts(): Promise<Map<number, number>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("challenge_completion_counts")
+    .select("challenge_id, completion_count");
+
+  if (error) return new Map();
+
+  const map = new Map<number, number>();
+  for (const row of data ?? []) {
+    map.set(row.challenge_id, row.completion_count);
+  }
+  return map;
+}
+
 export async function getCompletionCountForChallenge(
   challengeId: number
 ): Promise<number> {

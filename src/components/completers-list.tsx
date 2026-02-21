@@ -131,6 +131,7 @@ export function CompletersList({ completers, completionCount }: CompletersListPr
                               <video
                                 src={m.public_url}
                                 className="h-32 w-full object-cover"
+                                preload="metadata"
                                 controls
                               />
                             )}

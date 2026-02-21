@@ -22,6 +22,7 @@ export function ChallengeList({
   userVotes,
   userNoteIds,
   saveCounts,
+  completionCounts,
   saversMap,
   submitterNames,
   isLoggedIn = false,
@@ -32,6 +33,7 @@ export function ChallengeList({
   userVotes: Record<number, number>;
   userNoteIds?: number[];
   saveCounts?: Record<number, number>;
+  completionCounts?: Record<number, number>;
   saversMap?: Record<number, ChallengeSaver[]>;
   submitterNames?: Record<string, string>;
   isLoggedIn?: boolean;
@@ -127,6 +129,7 @@ export function ChallengeList({
               userVote={(userVotes[challenge.id] as 1 | -1) ?? null}
               hasNote={userNoteIds?.includes(challenge.id)}
               saveCount={saveCounts?.[challenge.id] ?? 0}
+              completionCount={completionCounts?.[challenge.id] ?? 0}
               submitterDisplayName={challenge.submitted_by ? submitterNames?.[challenge.submitted_by] : undefined}
               isLoggedIn={isLoggedIn}
             />

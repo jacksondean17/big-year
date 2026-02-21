@@ -43,10 +43,10 @@ function StatusProgression({
   status,
   onSelect,
 }: {
-  status: CompletionStatus;
+  status: CompletionStatus | null;
   onSelect: (s: CompletionStatus) => void;
 }) {
-  const selectedIdx = statusSteps.findIndex((s) => s.value === status);
+  const selectedIdx = status ? statusSteps.findIndex((s) => s.value === status) : -1;
 
   return (
     <div className="flex">
@@ -111,8 +111,8 @@ export function CompletionDialog({
   initialMedia,
   onUpdate,
 }: CompletionDialogProps) {
-  const [status, setStatus] = useState<CompletionStatus>(
-    completion?.status ?? "completed"
+  const [status, setStatus] = useState<CompletionStatus | null>(
+    completion?.status ?? null
   );
   const [note, setNote] = useState(completion?.completion_note ?? "");
   const [externalUrl, setExternalUrl] = useState(completion?.external_url ?? "");
@@ -128,7 +128,7 @@ export function CompletionDialog({
     startTransition(async () => {
       try {
         // Save/upsert the completion and get the real record back
-        const saved = await markChallengeComplete(challengeId, status, note, externalUrl);
+        const saved = await markChallengeComplete(challengeId, status!, note, externalUrl);
 
         // Upload any pending files now that we have a completion ID
         for (const pf of pendingFiles) {
@@ -171,7 +171,7 @@ export function CompletionDialog({
           URL.revokeObjectURL(pf.preview);
         }
         onUpdate(null);
-        setStatus("completed");
+        setStatus(null);
         setNote("");
         setExternalUrl("");
         setExistingMedia([]);
@@ -201,8 +201,8 @@ export function CompletionDialog({
       e.target.value = "";
       return;
     }
-    if (file.size > 50 * 1024 * 1024) {
-      setError("File too large. Maximum size is 50MB.");
+    if (file.size > 100 * 1024 * 1024) {
+      setError("File too large. Maximum size is 100MB.");
       e.target.value = "";
       return;
     }
@@ -299,7 +299,7 @@ export function CompletionDialog({
               </label>
             </div>
             <p className="text-xs text-muted-foreground">
-              Max 50MB. JPEG, PNG, WebP, GIF, MP4, or MOV.
+              Max 100MB. JPEG, PNG, WebP, GIF, MP4, or MOV.
             </p>
 
             {/* Media preview grid */}
@@ -318,6 +318,7 @@ export function CompletionDialog({
                       <video
                         src={m.src}
                         className="h-32 w-full rounded-md object-cover"
+                        preload="metadata"
                         controls
                       />
                     )}
@@ -386,7 +387,7 @@ export function CompletionDialog({
               >
                 Cancel
               </Button>
-              <Button onClick={handleSave} disabled={isPending}>
+              <Button onClick={handleSave} disabled={isPending || !status}>
                 {isPending && <Loader2 className="size-4 animate-spin" />}
                 Save
               </Button>

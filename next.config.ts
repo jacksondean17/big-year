@@ -37,6 +37,12 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "100mb",
+    },
+    proxyClientMaxBodySize: "100mb",
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "cdn.discordapp.com" },

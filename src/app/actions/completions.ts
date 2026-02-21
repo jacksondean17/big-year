@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import type { Completion, CompletionStatus } from "@/lib/types";
+import type { Completion, CompletionStatus, ChallengeCompleter } from "@/lib/types";
 
 export async function markChallengeComplete(
   challengeId: number,
@@ -50,4 +50,42 @@ export async function removeChallengeCompletion(challengeId: number) {
     .eq("challenge_id", challengeId);
 
   if (error) throw error;
+}
+
+export async function getCompletersForChallenge(
+  challengeId: number
+): Promise<ChallengeCompleter[]> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const { data, error } = await supabase
+    .from("challenge_completions")
+    .select(`
+      user_id,
+      status,
+      completed_at,
+      profiles(id, display_name, avatar_url, guild_nickname)
+    `)
+    .eq("challenge_id", challengeId)
+    .eq("status", "completed")
+    .order("completed_at", { ascending: false })
+    .limit(10);
+
+  if (error) {
+    console.error("getCompletersForChallenge error:", error);
+    return [];
+  }
+
+  return (data ?? [])
+    .filter((row) => row.profiles)
+    .map((row) => ({
+      user_id: row.user_id,
+      status: row.status as ChallengeCompleter["status"],
+      completed_at: row.completed_at,
+      completion_note: null,
+      external_url: null,
+      media: [],
+      profiles: row.profiles as unknown as ChallengeCompleter["profiles"],
+      isCurrentUser: user ? row.user_id === user.id : false,
+    }));
 }

@@ -13,6 +13,7 @@ import type { UserVoteType, ChallengeSaver } from "@/lib/types";
 import { MyListButton } from "@/components/my-list-button";
 import { VoteButton } from "@/components/vote-button";
 import { SaversCount } from "@/components/savers-count";
+import { CompletersCount } from "@/components/completers-count";
 import { StickyNote } from "lucide-react";
 import { SubmittedByIcon } from "@/components/submitted-by";
 
@@ -30,6 +31,7 @@ export function ChallengeCard({
   userVote = null,
   hasNote = false,
   saveCount = 0,
+  completionCount = 0,
   savers = [],
   submitterDisplayName,
   isLoggedIn = false,
@@ -41,6 +43,7 @@ export function ChallengeCard({
   userVote?: UserVoteType;
   hasNote?: boolean;
   saveCount?: number;
+  completionCount?: number;
   savers?: ChallengeSaver[];
   submitterDisplayName?: string;
   isLoggedIn?: boolean;
@@ -102,14 +105,17 @@ export function ChallengeCard({
             <p className="text-xs text-muted-foreground">
               {challenge.estimated_time}
             </p>
-            <VoteButton
-              challengeId={challenge.id}
-              initialUpvotes={upvotes}
-              initialDownvotes={downvotes}
-              initialUserVote={userVote}
-              size="sm"
-              isLoggedIn={isLoggedIn}
-            />
+            <div className="flex items-center gap-2">
+              <CompletersCount count={completionCount} challengeId={challenge.id} size="sm" />
+              <VoteButton
+                challengeId={challenge.id}
+                initialUpvotes={upvotes}
+                initialDownvotes={downvotes}
+                initialUserVote={userVote}
+                size="sm"
+                isLoggedIn={isLoggedIn}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
