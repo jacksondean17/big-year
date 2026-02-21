@@ -76,6 +76,8 @@ export interface ChallengeCompleter {
   user_id: string;
   status: CompletionStatus;
   completed_at: string | null;
+  completion_note: string | null;
+  media: CompletionMedia[];
   profiles: UserProfile;
   isCurrentUser?: boolean;
 }

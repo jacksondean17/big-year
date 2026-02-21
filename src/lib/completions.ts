@@ -1,5 +1,5 @@
 import { createClient } from "./supabase/server";
-import type { Completion, ChallengeCompleter } from "./types";
+import type { Completion, ChallengeCompleter, CompletionMedia } from "./types";
 
 export async function getUserCompletionForChallenge(
   challengeId: number
@@ -67,7 +67,9 @@ export async function getAllCompletionsForChallenge(
       user_id,
       status,
       completed_at,
-      profiles(id, display_name, avatar_url, guild_nickname)
+      completion_note,
+      profiles(id, display_name, avatar_url, guild_nickname),
+      completion_media(id, public_url, file_type)
     `
     )
     .eq("challenge_id", challengeId)
@@ -84,6 +86,8 @@ export async function getAllCompletionsForChallenge(
       user_id: row.user_id,
       status: row.status as ChallengeCompleter["status"],
       completed_at: row.completed_at,
+      completion_note: row.completion_note,
+      media: (row.completion_media ?? []) as unknown as CompletionMedia[],
       profiles: row.profiles as unknown as ChallengeCompleter["profiles"],
       isCurrentUser: user ? row.user_id === user.id : false,
     }));

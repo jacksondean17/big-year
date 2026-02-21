@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Upload, Trash2, X } from "lucide-react";
+import { ImagePreview, useImagePreview } from "@/components/image-preview";
 import {
   markChallengeComplete,
   removeChallengeCompletion,
@@ -118,6 +119,7 @@ export function CompletionDialog({
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const imagePreview = useImagePreview();
 
   const handleSave = () => {
     setError(null);
@@ -253,6 +255,9 @@ export function CompletionDialog({
           <DialogDescription>
             Update your status and optionally add a note or proof.
           </DialogDescription>
+          <p className="text-xs text-muted-foreground">
+            Your status, note, and proof are visible to other users.
+          </p>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -303,7 +308,8 @@ export function CompletionDialog({
                       <img
                         src={m.src}
                         alt="Proof"
-                        className="h-32 w-full rounded-md object-cover"
+                        className="h-32 w-full cursor-pointer rounded-md object-cover transition-opacity hover:opacity-80"
+                        onClick={() => imagePreview.open(m.src)}
                       />
                     ) : (
                       <video
@@ -368,6 +374,7 @@ export function CompletionDialog({
           </div>
         </div>
       </DialogContent>
+      <ImagePreview src={imagePreview.previewSrc} onClose={imagePreview.close} />
     </Dialog>
   );
 }
