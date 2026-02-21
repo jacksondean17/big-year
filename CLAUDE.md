@@ -89,6 +89,11 @@ See `.env.local.example`:
 - `DISCORD_BOT_TOKEN` / `DISCORD_GUILD_ID` (for guild nickname sync)
 - `NEXT_PUBLIC_GOOGLE_CALENDAR_ID` (for embedded schedule calendar)
 
+## Git Workflow
+
+- **Unless told otherwise**, always create a feature branch before making changes (e.g., `feature/description-of-change`).
+- Push changes to the `staging` branch (not `main` directly).
+
 ## Patterns to Note
 
 1. **Server Components by default** - Data fetching in page components, client components only for interactivity
