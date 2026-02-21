@@ -13,6 +13,12 @@ import {
   getAllChallengeSavers,
   getSaveCountForChallenge,
 } from "@/lib/savers";
+import {
+  getUserCompletionForChallenge,
+  getCompletionCountForChallenge,
+  getAllCompletionsForChallenge,
+} from "@/lib/completions";
+import { getCompletionMedia } from "@/lib/media";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +26,8 @@ import { MyListButton } from "@/components/my-list-button";
 import { VoteButton } from "@/components/vote-button";
 import { ChallengeNote } from "@/components/challenge-note";
 import { SaversList } from "@/components/savers-list";
+import { CompletionButton } from "@/components/completion-button";
+import { CompletersList } from "@/components/completers-list";
 import { UserPen } from "lucide-react";
 
 const difficultyStyle: Record<string, React.CSSProperties> = {
@@ -44,7 +52,7 @@ export default async function ChallengePage({
   const { data: { user } } = await supabase.auth.getUser();
   const isLoggedIn = !!user;
 
-  const [savedIds, voteData, userVote, userNote, savers, saveCount, submitterProfile] =
+  const [savedIds, voteData, userVote, userNote, savers, saveCount, submitterProfile, userCompletion, completionCount, completers] =
     await Promise.all([
       getUserChallengeIds(),
       getVoteCountForChallenge(challenge.id),
@@ -55,8 +63,14 @@ export default async function ChallengePage({
       challenge.submitted_by
         ? getSubmitterProfile(challenge.submitted_by)
         : Promise.resolve(null),
+      getUserCompletionForChallenge(challenge.id),
+      getCompletionCountForChallenge(challenge.id),
+      getAllCompletionsForChallenge(challenge.id),
     ]);
   const isSaved = savedIds.has(challenge.id);
+  const completionMedia = userCompletion
+    ? await getCompletionMedia(userCompletion.id)
+    : [];
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -111,6 +125,12 @@ export default async function ChallengePage({
                 initialSaved={isSaved}
                 isLoggedIn={isLoggedIn}
               />
+              <CompletionButton
+                challengeId={challenge.id}
+                initialCompletion={userCompletion}
+                initialMedia={completionMedia}
+                isLoggedIn={isLoggedIn}
+              />
             </div>
           </div>
         </CardHeader>
@@ -143,7 +163,8 @@ export default async function ChallengePage({
         </CardContent>
       </Card>
 
-      <div className="mt-6">
+      <div className="mt-6 space-y-4">
+        <CompletersList completers={completers} completionCount={completionCount} />
         <SaversList savers={savers} count={saveCount} />
       </div>
     </div>

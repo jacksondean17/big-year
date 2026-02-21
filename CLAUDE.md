@@ -16,7 +16,7 @@ A personal challenge tracker web app for "The Big Year" - a collection of meanin
 
 ## Database Schema
 
-Four main tables with Row Level Security:
+Six main tables with Row Level Security:
 
 | Table | Purpose |
 |-------|---------|
@@ -25,10 +25,13 @@ Four main tables with Row Level Security:
 | `challenge_votes` | Upvote/downvote per user per challenge (vote_type: 1 or -1) |
 | `challenge_notes` | User notes on challenges |
 | `profiles` | User display info (display_name, avatar_url, guild_nickname) |
+| `challenge_completions` | Tracks user completion status (planned/in_progress/completed) per challenge |
+| `completion_media` | Proof uploads (images/videos) linked to completions, stored in R2 |
 
 **Key Views:**
 - `challenge_vote_counts` - Aggregated scores per challenge
 - `challenge_save_counts` - How many users saved each challenge
+- `challenge_completion_counts` - How many users completed each challenge
 
 **Triggers:**
 - `on_auth_user_created` -> auto-creates profile from Discord user metadata
@@ -44,12 +47,16 @@ src/
 │   ├── users/page.tsx        # All users list
 │   ├── users/[id]/page.tsx   # User profile page
 │   ├── challenges/[id]/      # Challenge detail
+│   ├── api/upload/route.ts    # Media upload/delete API (R2)
 │   ├── auth/callback/route.ts # OAuth callback + Discord sync
-│   └── actions/              # Server actions (auth.ts, discord.ts, savers.ts)
+│   └── actions/              # Server actions (auth.ts, discord.ts, savers.ts, completions.ts)
 ├── components/
 │   ├── challenge-*.tsx       # Challenge list, card, filters, notes
 │   ├── vote-button.tsx       # Upvote/downvote
 │   ├── my-list-button.tsx    # Save/unsave
+│   ├── completion-button.tsx # Mark progress (planned/in-progress/completed)
+│   ├── completion-dialog.tsx # Completion form with status, note, media upload
+│   ├── completers-list.tsx   # Who completed a challenge
 │   ├── auth-button.tsx       # Login/logout
 │   ├── calendar-subscribe-buttons.tsx  # Google/iCal/Outlook subscribe buttons
 │   └── user-*.tsx            # User list and cards
@@ -59,12 +66,15 @@ src/
 │   ├── votes.ts              # Vote operations
 │   ├── my-list.ts            # Save/unsave operations
 │   ├── notes.ts              # Note operations
+│   ├── completions.ts        # Completion queries
+│   ├── media.ts              # Completion media queries
+│   ├── r2.ts                 # Cloudflare R2 client (S3-compatible)
 │   ├── users.ts              # User queries
 │   ├── savers.ts             # Who saved what
 │   ├── discord.ts            # Discord API (get guild nickname)
 │   └── types.ts              # TypeScript interfaces
 supabase/
-├── migrations/               # 5 SQL migrations (schema evolution)
+├── migrations/               # 8 SQL migrations (schema evolution)
 └── config.toml               # Supabase local config
 data/
 └── *.csv                     # Challenge seed data
@@ -88,6 +98,7 @@ See `.env.local.example`:
 - `SUPABASE_SECRET_KEY` (for seed script)
 - `DISCORD_BOT_TOKEN` / `DISCORD_GUILD_ID` (for guild nickname sync)
 - `NEXT_PUBLIC_GOOGLE_CALENDAR_ID` (for embedded schedule calendar)
+- `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET_NAME` / `R2_PUBLIC_URL` (for completion proof uploads)
 
 ## Git Workflow
 
