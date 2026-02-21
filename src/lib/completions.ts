@@ -68,6 +68,7 @@ export async function getAllCompletionsForChallenge(
       status,
       completed_at,
       completion_note,
+      external_url,
       profiles(id, display_name, avatar_url, guild_nickname),
       completion_media(id, public_url, file_type)
     `
@@ -87,6 +88,7 @@ export async function getAllCompletionsForChallenge(
       status: row.status as ChallengeCompleter["status"],
       completed_at: row.completed_at,
       completion_note: row.completion_note,
+      external_url: row.external_url,
       media: (row.completion_media ?? []) as unknown as CompletionMedia[],
       profiles: row.profiles as unknown as ChallengeCompleter["profiles"],
       isCurrentUser: user ? row.user_id === user.id : false,

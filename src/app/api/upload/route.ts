@@ -10,7 +10,7 @@ const ALLOWED_TYPES = [
   "video/mp4",
   "video/quicktime",
 ];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
   if (file.size > MAX_FILE_SIZE) {
     return NextResponse.json(
-      { error: "File too large. Maximum size is 10MB." },
+      { error: "File too large. Maximum size is 50MB." },
       { status: 400 }
     );
   }

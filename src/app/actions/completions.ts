@@ -6,7 +6,8 @@ import type { Completion, CompletionStatus } from "@/lib/types";
 export async function markChallengeComplete(
   challengeId: number,
   status: CompletionStatus,
-  note?: string
+  note?: string,
+  externalUrl?: string
 ): Promise<Completion> {
   const supabase = await createClient();
   const {
@@ -22,6 +23,7 @@ export async function markChallengeComplete(
         challenge_id: challengeId,
         status,
         completion_note: note?.trim() || null,
+        external_url: externalUrl?.trim() || null,
         completed_at: status === "completed" ? new Date().toISOString() : null,
         updated_at: new Date().toISOString(),
       },

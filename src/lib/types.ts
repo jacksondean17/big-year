@@ -58,6 +58,7 @@ export interface Completion {
   completed_at: string | null;
   status: CompletionStatus;
   completion_note: string | null;
+  external_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -77,6 +78,7 @@ export interface ChallengeCompleter {
   status: CompletionStatus;
   completed_at: string | null;
   completion_note: string | null;
+  external_url: string | null;
   media: CompletionMedia[];
   profiles: UserProfile;
   isCurrentUser?: boolean;

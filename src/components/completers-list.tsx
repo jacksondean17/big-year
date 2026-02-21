@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Clock, Target } from "lucide-react";
+import { CheckCircle, Clock, Target, ExternalLink } from "lucide-react";
 import { getDisplayName, type ChallengeCompleter, type CompletionStatus } from "@/lib/types";
 import { ImagePreview, useImagePreview } from "@/components/image-preview";
 
@@ -51,7 +51,7 @@ export function CompletersList({ completers, completionCount }: CompletersListPr
           {completers.map((completer) => {
             const Icon = statusIcon[completer.status];
             const isExpanded = expandedId === completer.user_id;
-            const hasDetails = completer.completion_note || completer.media.length > 0;
+            const hasDetails = completer.completion_note || completer.media.length > 0 || completer.external_url;
 
             return (
               <div key={completer.user_id} className="flex flex-col">
@@ -139,7 +139,20 @@ export function CompletersList({ completers, completionCount }: CompletersListPr
                       </div>
                     )}
 
-                    {!completer.completion_note && completer.media.length === 0 && (
+                    {completer.external_url && (
+                      <a
+                        href={completer.external_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <ExternalLink className="size-3" />
+                        View external proof
+                      </a>
+                    )}
+
+                    {!completer.completion_note && completer.media.length === 0 && !completer.external_url && (
                       <p className="text-muted-foreground italic">No note or proof added.</p>
                     )}
                   </div>

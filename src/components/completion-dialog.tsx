@@ -10,8 +10,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Upload, Trash2, X } from "lucide-react";
+import { Loader2, Upload, Trash2, X, ExternalLink } from "lucide-react";
 import { ImagePreview, useImagePreview } from "@/components/image-preview";
+import { Input } from "@/components/ui/input";
 import {
   markChallengeComplete,
   removeChallengeCompletion,
@@ -114,6 +115,7 @@ export function CompletionDialog({
     completion?.status ?? "completed"
   );
   const [note, setNote] = useState(completion?.completion_note ?? "");
+  const [externalUrl, setExternalUrl] = useState(completion?.external_url ?? "");
   const [existingMedia, setExistingMedia] =
     useState<CompletionMedia[]>(initialMedia);
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
@@ -126,7 +128,7 @@ export function CompletionDialog({
     startTransition(async () => {
       try {
         // Save/upsert the completion and get the real record back
-        const saved = await markChallengeComplete(challengeId, status, note);
+        const saved = await markChallengeComplete(challengeId, status, note, externalUrl);
 
         // Upload any pending files now that we have a completion ID
         for (const pf of pendingFiles) {
@@ -171,6 +173,7 @@ export function CompletionDialog({
         onUpdate(null);
         setStatus("completed");
         setNote("");
+        setExternalUrl("");
         setExistingMedia([]);
         setPendingFiles([]);
         onOpenChange(false);
@@ -198,8 +201,8 @@ export function CompletionDialog({
       e.target.value = "";
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      setError("File too large. Maximum size is 10MB.");
+    if (file.size > 50 * 1024 * 1024) {
+      setError("File too large. Maximum size is 50MB.");
       e.target.value = "";
       return;
     }
@@ -296,7 +299,7 @@ export function CompletionDialog({
               </label>
             </div>
             <p className="text-xs text-muted-foreground">
-              Max 10MB. JPEG, PNG, WebP, GIF, MP4, or MOV.
+              Max 50MB. JPEG, PNG, WebP, GIF, MP4, or MOV.
             </p>
 
             {/* Media preview grid */}
@@ -338,6 +341,23 @@ export function CompletionDialog({
                 ))}
               </div>
             )}
+          </div>
+
+          {/* External link */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">External link (optional)</label>
+            <div className="flex items-center gap-2">
+              <ExternalLink className="size-4 shrink-0 text-muted-foreground" />
+              <Input
+                type="url"
+                placeholder="https://photos.google.com/... or iCloud link"
+                value={externalUrl}
+                onChange={(e) => setExternalUrl(e.target.value)}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Link to Google Photos, iCloud, YouTube, or any external hosting.
+            </p>
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
