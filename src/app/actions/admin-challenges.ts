@@ -16,7 +16,8 @@ async function assertAdmin() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user || user.id !== process.env.ADMIN_USER_ID) {
+  const adminIds = (process.env.ADMIN_USER_IDS ?? "").split(",").map((s) => s.trim());
+  if (!user || !adminIds.includes(user.id)) {
     redirect("/");
   }
 }
