@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { LogIn, LogOut } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { syncDiscordNickname } from "@/app/actions/discord";
+import { signOut } from "@/app/actions/auth";
 
 // Dev-only test users for quick login
 const DEV_USERS = [
@@ -104,7 +105,7 @@ export function AuthButton() {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await signOut();
     window.location.reload();
   };
 
