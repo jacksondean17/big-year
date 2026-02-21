@@ -6,6 +6,7 @@ export interface Challenge {
   difficulty: "Easy" | "Medium" | "Hard";
   completion_criteria: string;
   category: string;
+  points: number | null;
 }
 
 export type UserVoteType = 1 | -1 | null;
@@ -15,7 +16,7 @@ export interface VoteData {
   downvotes: number;
 }
 
-export type SortOption = "default" | "popular" | "controversial";
+export type SortOption = "default" | "popular" | "controversial" | "points";
 
 export interface UserProfile {
   id: string;

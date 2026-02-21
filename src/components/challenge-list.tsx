@@ -75,6 +75,12 @@ export function ChallengeList({
         const bData = voteData[b.id] ?? { upvotes: 0, downvotes: 0 };
         return getControversy(bData) - getControversy(aData);
       });
+    } else if (selectedSort === "points") {
+      result = [...result].sort((a, b) => {
+        const aPoints = a.points ?? 0;
+        const bPoints = b.points ?? 0;
+        return bPoints - aPoints;
+      });
     }
 
     return result;

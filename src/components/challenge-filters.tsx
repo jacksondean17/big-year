@@ -112,6 +112,13 @@ export function ChallengeFilters({
           >
             Controversial
           </Button>
+          <Button
+            variant={selectedSort === "points" ? "default" : "outline"}
+            size="sm"
+            onClick={() => onSortChange("points")}
+          >
+            Points
+          </Button>
         </div>
       </div>
     </div>
