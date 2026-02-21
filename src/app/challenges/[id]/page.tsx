@@ -2,7 +2,7 @@ import React from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getChallengeById } from "@/lib/challenges";
+import { getChallengeById, getSubmitterProfile } from "@/lib/challenges";
 import { getUserChallengeIds } from "@/lib/my-list";
 import {
   getVoteCountForChallenge,
@@ -20,6 +20,7 @@ import { MyListButton } from "@/components/my-list-button";
 import { VoteButton } from "@/components/vote-button";
 import { ChallengeNote } from "@/components/challenge-note";
 import { SaversList } from "@/components/savers-list";
+import { UserPen } from "lucide-react";
 
 const difficultyStyle: Record<string, React.CSSProperties> = {
   Easy: { background: "rgba(42, 157, 143, 0.08)", color: "#3a8a7e", border: "1px solid rgba(42, 157, 143, 0.2)" },
@@ -43,7 +44,7 @@ export default async function ChallengePage({
   const { data: { user } } = await supabase.auth.getUser();
   const isLoggedIn = !!user;
 
-  const [savedIds, voteData, userVote, userNote, savers, saveCount] =
+  const [savedIds, voteData, userVote, userNote, savers, saveCount, submitterProfile] =
     await Promise.all([
       getUserChallengeIds(),
       getVoteCountForChallenge(challenge.id),
@@ -51,6 +52,9 @@ export default async function ChallengePage({
       getUserNoteForChallenge(challenge.id),
       getAllChallengeSavers(challenge.id),
       getSaveCountForChallenge(challenge.id),
+      challenge.submitted_by
+        ? getSubmitterProfile(challenge.submitted_by)
+        : Promise.resolve(null),
     ]);
   const isSaved = savedIds.has(challenge.id);
 
@@ -78,6 +82,20 @@ export default async function ChallengePage({
               {challenge.points != null ? `${challenge.points} pts` : "— pts"}
             </span>
           </div>
+          {challenge.submitted_by && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              {submitterProfile?.avatar_url ? (
+                <img
+                  src={submitterProfile.avatar_url}
+                  alt=""
+                  className="size-5 rounded-full"
+                />
+              ) : (
+                <UserPen className="size-4" />
+              )}
+              <span>Submitted by {submitterProfile ? submitterProfile.display_name : challenge.submitted_by}</span>
+            </div>
+          )}
           <div className="flex items-start justify-between gap-4">
             <CardTitle className="text-2xl">{challenge.title}</CardTitle>
             <div className="flex items-center gap-2">

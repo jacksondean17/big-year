@@ -7,6 +7,7 @@ export interface Challenge {
   completion_criteria: string;
   category: string;
   points: number | null;
+  submitted_by: string | null;
 }
 
 export type UserVoteType = 1 | -1 | null;

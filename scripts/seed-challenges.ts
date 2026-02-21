@@ -18,36 +18,43 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Test users to create
+// Some users have guild_nickname matching discord submitter usernames
+// so the "submitted by" avatar lookup works for testing
 const TEST_USERS = [
   {
     email: "alice@example.com",
     password: "password123",
     display_name: "Alice Adventure",
     avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=alice",
+    guild_nickname: "abbs2882",
   },
   {
     email: "bob@example.com",
     password: "password123",
     display_name: "Bob Builder",
     avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=bob",
+    guild_nickname: "vikingnips",
   },
   {
     email: "charlie@example.com",
     password: "password123",
     display_name: "Charlie Champion",
     avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=charlie",
+    guild_nickname: "mop559",
   },
   {
     email: "diana@example.com",
     password: "password123",
     display_name: "Diana Doer",
     avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=diana",
+    guild_nickname: null,
   },
   {
     email: "eve@example.com",
     password: "password123",
     display_name: "Eve Explorer",
     avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=eve",
+    guild_nickname: null,
   },
 ];
 
@@ -59,30 +66,56 @@ const normalizeDifficulty = (d: string): string => {
   return "Medium";
 };
 
-async function seedChallenges(): Promise<number[]> {
-  const csvPath =
-    process.argv[2] ||
-    resolve(__dirname, "../data/big year challenge list - starters.csv");
+function parseCsv(csvPath: string) {
   const csv = readFileSync(csvPath, "utf-8");
-
   const records: Record<string, string>[] = parse(csv, {
     columns: true,
     skip_empty_lines: true,
     trim: true,
   });
-
-  const challenges = records
+  return records
     .filter((r) => r["Title"]?.trim())
-    .map((r) => ({
-      title: r["Title"],
-      description: r["Description"],
-      estimated_time: r["Estimated Time"],
-      difficulty: normalizeDifficulty(r["Difficulty"]),
-      completion_criteria: r["Completion Criteria"],
-      category: r["Category"],
-    }));
+    .map((r) => {
+      const submittedBy =
+        (r["Who Submitted"] || r["Idea Credit"] || "").trim() || null;
+      return {
+        title: r["Title"],
+        description: r["Description"],
+        estimated_time: r["Estimated Time"],
+        difficulty: normalizeDifficulty(r["Difficulty"]),
+        completion_criteria: r["Completion Criteria"],
+        category: r["Category"],
+        submitted_by: submittedBy,
+      };
+    });
+}
 
-  console.log(`Parsed ${challenges.length} challenges from CSV`);
+async function seedChallenges(): Promise<number[]> {
+  // Load from all available CSVs so we get a mix of submitted and non-submitted
+  const csvPaths = process.argv.slice(2);
+  if (csvPaths.length === 0) {
+    csvPaths.push(
+      resolve(__dirname, "../data/big year challenge list - starters.csv"),
+      resolve(__dirname, "../data/big year challenge list - discord ideas.csv")
+    );
+  }
+
+  const challenges: ReturnType<typeof parseCsv> = [];
+  const seenTitles = new Set<string>();
+
+  for (const csvPath of csvPaths) {
+    const parsed = parseCsv(csvPath);
+    for (const c of parsed) {
+      // Deduplicate by title
+      if (!seenTitles.has(c.title)) {
+        seenTitles.add(c.title);
+        challenges.push(c);
+      }
+    }
+    console.log(`Parsed ${parsed.length} challenges from ${csvPath.split(/[\\/]/).pop()}`);
+  }
+
+  console.log(`${challenges.length} unique challenges total`);
 
   // Clear existing challenges
   const { error: deleteError } = await supabase
@@ -145,6 +178,22 @@ async function seedUsers(): Promise<string[]> {
     if (data.user) {
       userIds.push(data.user.id);
       console.log(`  Created user ${user.email}`);
+    }
+  }
+
+  // Set guild_nickname on profiles for users that have one
+  for (const user of TEST_USERS) {
+    if (!user.guild_nickname) continue;
+    const userId = userIds[TEST_USERS.indexOf(user)];
+    if (!userId) continue;
+    const { error } = await supabase
+      .from("profiles")
+      .update({ guild_nickname: user.guild_nickname })
+      .eq("id", userId);
+    if (error) {
+      console.error(`  Error setting guild_nickname for ${user.email}:`, error.message);
+    } else {
+      console.log(`  Set guild_nickname "${user.guild_nickname}" for ${user.email}`);
     }
   }
 
