@@ -48,3 +48,34 @@ export interface UserWithSaveCount {
 }
 
 export type UserSortOption = "name" | "saves" | "recent";
+
+export type CompletionStatus = "planned" | "in_progress" | "completed";
+
+export interface Completion {
+  id: string;
+  user_id: string;
+  challenge_id: number;
+  completed_at: string | null;
+  status: CompletionStatus;
+  completion_note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CompletionMedia {
+  id: string;
+  completion_id: string;
+  storage_path: string;
+  public_url: string;
+  file_type: string;
+  file_size: number;
+  uploaded_at: string;
+}
+
+export interface ChallengeCompleter {
+  user_id: string;
+  status: CompletionStatus;
+  completed_at: string | null;
+  profiles: UserProfile;
+  isCurrentUser?: boolean;
+}
