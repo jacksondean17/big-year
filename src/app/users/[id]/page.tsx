@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getUserById, getUserChallengesByUserId } from "@/lib/users";
+import { getSubmitterDisplayNames } from "@/lib/challenges";
 import { getDisplayName } from "@/lib/types";
 import { getVoteCounts, getUserVotes } from "@/lib/votes";
 import { getSaveCounts } from "@/lib/savers";
@@ -44,6 +45,15 @@ export default async function UserProfilePage({
   const voteDataMap = Object.fromEntries(voteCounts);
   const userVoteMap = Object.fromEntries(userVotes);
   const saveCountMap = Object.fromEntries(saveCounts);
+
+  const submitterUsernames = [
+    ...new Set(
+      savedChallenges
+        .map(({ challenges: c }) => c.submitted_by)
+        .filter((s): s is string => !!s)
+    ),
+  ];
+  const submitterNames = await getSubmitterDisplayNames(submitterUsernames);
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -104,6 +114,7 @@ export default async function UserProfilePage({
                 userVote={(userVoteMap[challenge.id] as 1 | -1) ?? null}
                 hasNote={noteIds.has(challenge.id)}
                 saveCount={saveCountMap[challenge.id] ?? 0}
+                submitterDisplayName={challenge.submitted_by ? submitterNames[challenge.submitted_by] : undefined}
                 isLoggedIn={isLoggedIn}
               />
             ))}

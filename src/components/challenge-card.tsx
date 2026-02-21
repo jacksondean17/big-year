@@ -14,6 +14,7 @@ import { MyListButton } from "@/components/my-list-button";
 import { VoteButton } from "@/components/vote-button";
 import { SaversCount } from "@/components/savers-count";
 import { StickyNote } from "lucide-react";
+import { SubmittedByIcon } from "@/components/submitted-by";
 
 const difficultyStyle: Record<string, React.CSSProperties> = {
   Easy: { background: "rgba(42, 157, 143, 0.08)", color: "#3a8a7e", border: "1px solid rgba(42, 157, 143, 0.2)" },
@@ -30,6 +31,7 @@ export function ChallengeCard({
   hasNote = false,
   saveCount = 0,
   savers = [],
+  submitterDisplayName,
   isLoggedIn = false,
 }: {
   challenge: Challenge;
@@ -40,6 +42,7 @@ export function ChallengeCard({
   hasNote?: boolean;
   saveCount?: number;
   savers?: ChallengeSaver[];
+  submitterDisplayName?: string;
   isLoggedIn?: boolean;
 }) {
   return (
@@ -69,6 +72,13 @@ export function ChallengeCard({
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            {challenge.submitted_by && (
+              <SubmittedByIcon
+                username={challenge.submitted_by}
+                displayName={submitterDisplayName}
+                size="sm"
+              />
+            )}
             <Badge variant="outline" className="text-xs">
               {challenge.category}
             </Badge>

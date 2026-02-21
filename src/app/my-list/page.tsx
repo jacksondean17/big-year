@@ -4,6 +4,7 @@ import { getUserChallenges } from "@/lib/my-list";
 import { getVoteCounts, getUserVotes } from "@/lib/votes";
 import { getUserNoteChallengeIds } from "@/lib/notes";
 import { getSaveCounts } from "@/lib/savers";
+import { getSubmitterDisplayNames } from "@/lib/challenges";
 import { ChallengeCard } from "@/components/challenge-card";
 import type { Challenge } from "@/lib/types";
 
@@ -28,6 +29,15 @@ export default async function MyListPage() {
 
   const voteDataMap = Object.fromEntries(voteCounts);
   const userVoteMap = Object.fromEntries(userVotes);
+
+  const submitterUsernames = [
+    ...new Set(
+      savedChallenges
+        .map((item) => (item.challenges as Challenge).submitted_by)
+        .filter((s): s is string => !!s)
+    ),
+  ];
+  const submitterNames = await getSubmitterDisplayNames(submitterUsernames);
 
   return (
     <div>
@@ -57,6 +67,7 @@ export default async function MyListPage() {
               hasNote={noteIds.has(item.challenge_id)}
               saveCount={saveCounts.get(item.challenge_id) ?? 0}
               savers={[]}
+              submitterDisplayName={(item.challenges as Challenge).submitted_by ? submitterNames[(item.challenges as Challenge).submitted_by!] : undefined}
               isLoggedIn={true}
             />
           ))}
