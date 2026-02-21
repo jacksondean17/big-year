@@ -45,7 +45,7 @@ src/
 │   ├── users/[id]/page.tsx   # User profile page
 │   ├── challenges/[id]/      # Challenge detail
 │   ├── auth/callback/route.ts # OAuth callback + Discord sync
-│   └── actions/              # Server actions (discord.ts, savers.ts)
+│   └── actions/              # Server actions (auth.ts, discord.ts, savers.ts)
 ├── components/
 │   ├── challenge-*.tsx       # Challenge list, card, filters, notes
 │   ├── vote-button.tsx       # Upvote/downvote
@@ -91,8 +91,9 @@ See `.env.local.example`:
 
 ## Git Workflow
 
-- **Unless told otherwise**, always create a feature branch before making changes (e.g., `feature/description-of-change`).
-- Push changes to the `staging` branch (not `main` directly).
+- **Default (solo work):** Work directly on `main`. Push to `main` to deploy to production via Vercel. For anything non-trivial, create a short-lived feature branch, use the Vercel preview deployment to test, then merge to `main`.
+- **Coordinated / multi-feature launches:** Use the `staging` branch to batch multiple features before merging to `main`. Push feature branches to `staging` when work needs to be tested together before going live.
+- **Feature branches:** Use `feature/description-of-change` naming. Keep them short-lived.
 
 ## Patterns to Note
 
