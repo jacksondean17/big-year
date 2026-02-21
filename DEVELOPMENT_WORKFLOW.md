@@ -5,6 +5,7 @@
 | Task | Command | Database |
 |------|---------|----------|
 | **Daily Development** | `npm run db:start` → `npm run seed:local` → `npm run dev:local` | Local |
+| **Test on Vercel (staging)** | `git push origin staging` | Remote |
 | **Test Production** | `npm run dev` | Remote |
 | **Apply Migration** | `npm run db:migrate` | Remote |
 | **Reset Local DB** | `npm run db:reset` | Local |
@@ -134,6 +135,42 @@ npm run db:migrate
 ```
 
 **⚠️ CRITICAL:** This runs SQL on **production** with **real user data**!
+
+---
+
+## 🚢 Staging Deployment
+
+Before pushing to production, you can verify changes on the real Vercel infrastructure using the `staging` branch.
+
+**Staging URL:** `https://big-year-git-staging-jacksondean17.vercel.app`
+
+### **Staging Workflow**
+
+```bash
+# Work on your feature locally first
+npm run dev:local
+
+# When ready to test on real Vercel infra, push to staging
+git checkout staging
+git merge main          # or merge your feature branch
+git push origin staging # Vercel auto-builds the staging URL
+
+# Verify on the staging URL, then ship to production
+git checkout main
+git merge staging
+git push origin main    # Production auto-deploys at bigyear.xyz
+```
+
+> **Staging uses the production database.** It's for code verification, not destructive testing. For risky data experiments, use `npm run dev:local` instead.
+
+### **Database Migrations on Staging**
+
+Since staging shares the production database, any migrations you run via `npm run db:migrate` apply to both. Always test migrations locally first:
+
+```bash
+npm run db:reset       # Test migration locally
+npm run db:migrate     # Apply to production (staging sees it immediately)
+```
 
 ---
 
