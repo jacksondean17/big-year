@@ -36,7 +36,7 @@ export async function sendCompletionPing(
   const [{ data: profile }, { data: challenge }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("discord_id, display_name")
+      .select("discord_id, display_name, guild_nickname")
       .eq("id", userId)
       .single(),
     supabase
@@ -64,6 +64,7 @@ export async function sendCompletionPing(
 
   await sendCompletionMessage({
     discordUserId: profile.discord_id,
+    displayName: profile.guild_nickname ?? profile.display_name ?? "Someone",
     challengeTitle: challenge.title,
     challengeId,
     points: challenge.points,

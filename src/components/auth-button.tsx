@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LogIn, LogOut } from "lucide-react";
@@ -21,6 +22,7 @@ export function AuthButton() {
   const [showDevLogin, setShowDevLogin] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const supabase = createClient();
+  const router = useRouter();
 
   // Check if running locally
   const isDev =
@@ -50,7 +52,7 @@ export function AuthButton() {
           .then((result) => {
             console.log("[AuthButton] Discord sync result:", result);
             if (result.success && result.nickname) {
-              window.location.reload();
+              router.refresh();
             }
           })
           .catch((err) => {

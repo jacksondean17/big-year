@@ -1,3 +1,5 @@
+import Anthropic from "@anthropic-ai/sdk";
+
 const DISCORD_API_BASE = "https://discord.com/api/v10";
 
 interface DiscordGuildMember {
@@ -75,11 +77,49 @@ export async function getGuildDisplayName(
 }
 
 /**
+ * Uses Claude Haiku to generate a short, conversational sentence about a challenge completion.
+ * Falls back to a generic message if the API call fails.
+ */
+async function generateCompletionMessage(
+  displayName: string,
+  challengeTitle: string
+): Promise<string> {
+  const apiKey = process.env.CLAUDE_API_KEY;
+  if (!apiKey) {
+    console.log("[Discord] No CLAUDE_API_KEY, using fallback message");
+    return `${displayName} completed a challenge: **${challengeTitle}**!`;
+  }
+
+  try {
+    const client = new Anthropic({ apiKey });
+    const response = await client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 100,
+      messages: [
+        {
+          role: "user",
+          content: `Write a single short sentence announcing that ${displayName} completed this challenge: "${challengeTitle}". State what they did in a straightforward, excited, conversational way. Don't be cute or use puns. Use their name at the start. Don't use quotes or quotation marks. Just the sentence, nothing else.`,
+        },
+      ],
+    });
+
+    const text =
+      response.content[0].type === "text" ? response.content[0].text.trim() : null;
+    console.log("[Discord] Generated message:", text);
+    return text || `${displayName} completed a challenge: **${challengeTitle}**!`;
+  } catch (error) {
+    console.error("[Discord] Claude API error, using fallback:", error);
+    return `${displayName} completed a challenge: **${challengeTitle}**!`;
+  }
+}
+
+/**
  * Sends a celebratory embed to the Discord completions channel.
  * Errors are logged but never thrown — a failed message should not block the completion flow.
  */
 export async function sendCompletionMessage(params: {
   discordUserId: string;
+  displayName: string;
   challengeTitle: string;
   challengeId: number;
   points: number | null;
@@ -91,6 +131,7 @@ export async function sendCompletionMessage(params: {
 
   console.log("[Discord] sendCompletionMessage called with:", {
     discordUserId: params.discordUserId,
+    displayName: params.displayName,
     challengeTitle: params.challengeTitle,
     challengeId: params.challengeId,
     hasBotToken: !!botToken,
@@ -103,6 +144,11 @@ export async function sendCompletionMessage(params: {
     );
     return;
   }
+
+  const message = await generateCompletionMessage(
+    params.displayName,
+    params.challengeTitle
+  );
 
   const challengeUrl = `https://bigyear.xyz/challenges/${params.challengeId}`;
 
@@ -132,7 +178,7 @@ export async function sendCompletionMessage(params: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          content: `<@${params.discordUserId}> completed a challenge!`,
+          content: `<@${params.discordUserId}> ${message}`,
           embeds: [embed],
         }),
       }
