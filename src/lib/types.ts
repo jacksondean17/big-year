@@ -73,6 +73,28 @@ export interface CompletionMedia {
   uploaded_at: string;
 }
 
+export type LeagueTier = "Bronze" | "Silver" | "Gold";
+
+export interface RankedUser {
+  user_id: string;
+  display_name: string;
+  avatar_url: string | null;
+  guild_nickname: string | null;
+  total_points: number;
+  completed_count: number;
+  rank: number;
+  league: LeagueTier;
+}
+
+export interface LeaderboardContext {
+  currentUser: RankedUser | null;
+  above: RankedUser[];
+  below: RankedUser[];
+  totalUsers: number;
+  leagueBreakpoints: { gold: number; silver: number };
+  motivationMessage: string;
+}
+
 export interface ChallengeCompleter {
   user_id: string;
   status: CompletionStatus;

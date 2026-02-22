@@ -1,5 +1,5 @@
 import { createClient } from "./supabase/server";
-import type { Completion, ChallengeCompleter, CompletionMedia } from "./types";
+import type { Completion, Challenge, ChallengeCompleter, CompletionMedia } from "./types";
 
 export async function getUserCompletionForChallenge(
   challengeId: number
@@ -65,6 +65,33 @@ export async function getCompletionCountForChallenge(
 
   if (error) return 0;
   return data?.completion_count ?? 0;
+}
+
+export async function getRecentCompletionsForUser(
+  userId: string,
+  limit = 6
+): Promise<(Completion & { challenge: Challenge })[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("challenge_completions")
+    .select("*, challenges(*)")
+    .eq("user_id", userId)
+    .eq("status", "completed")
+    .order("completed_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("getRecentCompletionsForUser error:", error);
+    return [];
+  }
+
+  return (data ?? []).map((row) => {
+    const { challenges, ...completion } = row;
+    return {
+      ...completion,
+      challenge: challenges as unknown as Challenge,
+    } as Completion & { challenge: Challenge };
+  });
 }
 
 export async function getAllCompletionsForChallenge(

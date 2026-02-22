@@ -20,6 +20,14 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 // Test users to create
 // Some users have guild_nickname matching discord submitter usernames
 // so the "submitted by" avatar lookup works for testing
+const FILLER_NAMES = [
+  "Frank", "Grace", "Hank", "Ivy", "Jake",
+  "Karen", "Leo", "Mia", "Nate", "Olive",
+  "Pete", "Quinn", "Rosa", "Sam", "Tina",
+  "Uma", "Vince", "Wendy", "Xander", "Yara",
+  "Zane", "Jade", "Kyle", "Luna", "Max",
+];
+
 const TEST_USERS = [
   {
     email: "alice@example.com",
@@ -56,6 +64,13 @@ const TEST_USERS = [
     avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=eve",
     guild_nickname: null,
   },
+  ...FILLER_NAMES.map((name) => ({
+    email: `${name.toLowerCase()}@example.com`,
+    password: "password123",
+    display_name: name,
+    avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name.toLowerCase()}`,
+    guild_nickname: null,
+  })),
 ];
 
 // Normalize difficulty values
@@ -78,14 +93,22 @@ function parseCsv(csvPath: string) {
     .map((r) => {
       const submittedBy =
         (r["Who Submitted"] || r["Idea Credit"] || "").trim() || null;
+      // Assign random points 1-30 based on difficulty
+      const diff = normalizeDifficulty(r["Difficulty"]);
+      const pointsMin = diff === "Easy" ? 1 : diff === "Medium" ? 8 : 18;
+      const pointsMax = diff === "Easy" ? 10 : diff === "Medium" ? 20 : 30;
+      const points =
+        pointsMin + Math.floor(Math.random() * (pointsMax - pointsMin + 1));
+
       return {
         title: r["Title"],
         description: r["Description"],
         estimated_time: r["Estimated Time"],
-        difficulty: normalizeDifficulty(r["Difficulty"]),
+        difficulty: diff,
         completion_criteria: r["Completion Criteria"],
         category: r["Category"],
         submitted_by: submittedBy,
+        points,
       };
     });
 }
@@ -209,7 +232,9 @@ async function seedUserData(userIds: string[], challengeIds: number[]) {
 
   console.log("\nSeeding user interactions...");
 
-  // Clear existing user data
+  // Clear existing user data (media & completions first due to FK)
+  await supabase.from("completion_media").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  await supabase.from("challenge_completions").delete().gte("challenge_id", 0);
   await supabase.from("challenge_notes").delete().gte("challenge_id", 0);
   await supabase.from("challenge_votes").delete().gte("challenge_id", 0);
   await supabase.from("user_challenges").delete().gte("challenge_id", 0);
@@ -304,10 +329,210 @@ async function seedUserData(userIds: string[], challengeIds: number[]) {
   }
 }
 
+// Existing media already uploaded to R2 — re-link to Alice's completions
+const R2_BASE =
+  "https://pub-df2ba8705bb9471ea1d790b4701742df.r2.dev";
+
+// These are keyed by challenge title so we can match after re-insert
+const EXISTING_MEDIA: {
+  challengeTitle: string;
+  storagePath: string;
+  publicUrl: string;
+  fileType: string;
+  fileSize: number;
+}[] = [
+  {
+    challengeTitle: "The Protected Call",
+    storagePath:
+      "completions/76f99341-9ee8-469f-b78f-26f64310705c/9955b7c4-b333-4698-ad07-09a96916e277/1771711845896.png",
+    publicUrl: `${R2_BASE}/completions/76f99341-9ee8-469f-b78f-26f64310705c/9955b7c4-b333-4698-ad07-09a96916e277/1771711845896.png`,
+    fileType: "image/png",
+    fileSize: 87490,
+  },
+  {
+    challengeTitle: "Get Kicked Out of a Casino for Card Counting",
+    storagePath:
+      "completions/76f99341-9ee8-469f-b78f-26f64310705c/4ab5b1ea-ec4a-46c0-8a83-52b57d846c37/1771714414464.png",
+    publicUrl: `${R2_BASE}/completions/76f99341-9ee8-469f-b78f-26f64310705c/4ab5b1ea-ec4a-46c0-8a83-52b57d846c37/1771714414464.png`,
+    fileType: "image/png",
+    fileSize: 1312125,
+  },
+  {
+    challengeTitle: "Get Kicked Out of a Casino for Card Counting",
+    storagePath:
+      "completions/76f99341-9ee8-469f-b78f-26f64310705c/4ab5b1ea-ec4a-46c0-8a83-52b57d846c37/1771715043521.mp4",
+    publicUrl: `${R2_BASE}/completions/76f99341-9ee8-469f-b78f-26f64310705c/4ab5b1ea-ec4a-46c0-8a83-52b57d846c37/1771715043521.mp4`,
+    fileType: "video/mp4",
+    fileSize: 69976002,
+  },
+  {
+    challengeTitle: "The Authentic Day",
+    storagePath:
+      "completions/76f99341-9ee8-469f-b78f-26f64310705c/d588e6f6-80a6-4fc2-89e0-704e6410471a/1771715894897.JPG",
+    publicUrl: `${R2_BASE}/completions/76f99341-9ee8-469f-b78f-26f64310705c/d588e6f6-80a6-4fc2-89e0-704e6410471a/1771715894897.JPG`,
+    fileType: "image/jpeg",
+    fileSize: 1511227,
+  },
+];
+
+const sampleCompletionNotes = [
+  "That was awesome!",
+  "Harder than I expected but worth it.",
+  "Can't believe I actually did this!",
+  "Would definitely do again.",
+  "Checked this one off the list!",
+  null,
+  null,
+];
+
+async function seedCompletions(userIds: string[], challengeIds: number[]) {
+  if (userIds.length === 0 || challengeIds.length === 0) return;
+
+  console.log("\nSeeding completions...");
+
+  // Look up challenge id by title for media linking
+  const { data: allChallenges } = await supabase
+    .from("challenges")
+    .select("id, title");
+  const titleToId = new Map<string, number>();
+  for (const c of allChallenges ?? []) {
+    titleToId.set(c.title, c.id);
+  }
+
+  // Alice (index 0) gets specific completions that have media
+  // All users get random completions
+  const completions: {
+    user_id: string;
+    challenge_id: number;
+    status: string;
+    completed_at: string;
+    completion_note: string | null;
+  }[] = [];
+
+  // Track which challenges each user has completed to avoid dupes
+  const userCompleted = new Map<string, Set<number>>();
+
+  // Alice's specific completions (for media)
+  const aliceId = userIds[0];
+  const aliceSpecific = [
+    { title: "The Protected Call", status: "completed", note: null },
+    {
+      title: "Get Kicked Out of a Casino for Card Counting",
+      status: "planned",
+      note: null,
+    },
+    {
+      title: "The Authentic Day",
+      status: "in_progress",
+      note: "Me looking authentic af",
+    },
+  ];
+
+  const aliceSet = new Set<number>();
+  for (const spec of aliceSpecific) {
+    const cId = titleToId.get(spec.title);
+    if (!cId) continue;
+    aliceSet.add(cId);
+    completions.push({
+      user_id: aliceId,
+      challenge_id: cId,
+      status: spec.status,
+      completed_at:
+        spec.status === "completed" ? new Date().toISOString() : null!,
+      completion_note: spec.note,
+    });
+  }
+  userCompleted.set(aliceId, aliceSet);
+
+  // Give each user 2-6 random completed challenges
+  for (const userId of userIds) {
+    const existing = userCompleted.get(userId) ?? new Set<number>();
+    const available = challengeIds.filter((id) => !existing.has(id));
+    const shuffled = [...available].sort(() => Math.random() - 0.5);
+    const numComplete = 2 + Math.floor(Math.random() * 5);
+    const picks = shuffled.slice(0, numComplete);
+
+    for (const challengeId of picks) {
+      existing.add(challengeId);
+      const daysAgo = Math.floor(Math.random() * 60);
+      const completedAt = new Date(
+        Date.now() - daysAgo * 86400000
+      ).toISOString();
+      completions.push({
+        user_id: userId,
+        challenge_id: challengeId,
+        status: "completed",
+        completed_at: completedAt,
+        completion_note:
+          sampleCompletionNotes[
+            Math.floor(Math.random() * sampleCompletionNotes.length)
+          ],
+      });
+    }
+    userCompleted.set(userId, existing);
+  }
+
+  // Insert completions
+  const { data: insertedCompletions, error: compError } = await supabase
+    .from("challenge_completions")
+    .insert(completions)
+    .select("id, user_id, challenge_id");
+
+  if (compError) {
+    console.error("Error inserting completions:", compError.message);
+    return;
+  }
+  console.log(
+    `  Inserted ${insertedCompletions?.length ?? 0} completions`
+  );
+
+  // Re-link existing R2 media to Alice's new completion IDs
+  const aliceCompletionMap = new Map<number, string>();
+  for (const c of insertedCompletions ?? []) {
+    if (c.user_id === aliceId) {
+      aliceCompletionMap.set(c.challenge_id, c.id);
+    }
+  }
+
+  const mediaInserts: {
+    completion_id: string;
+    storage_path: string;
+    public_url: string;
+    file_type: string;
+    file_size: number;
+  }[] = [];
+
+  for (const m of EXISTING_MEDIA) {
+    const cId = titleToId.get(m.challengeTitle);
+    if (!cId) continue;
+    const completionId = aliceCompletionMap.get(cId);
+    if (!completionId) continue;
+    mediaInserts.push({
+      completion_id: completionId,
+      storage_path: m.storagePath,
+      public_url: m.publicUrl,
+      file_type: m.fileType,
+      file_size: m.fileSize,
+    });
+  }
+
+  if (mediaInserts.length > 0) {
+    const { error: mediaError } = await supabase
+      .from("completion_media")
+      .insert(mediaInserts);
+    if (mediaError) {
+      console.error("Error inserting media:", mediaError.message);
+    } else {
+      console.log(`  Re-linked ${mediaInserts.length} existing media files`);
+    }
+  }
+}
+
 async function seed() {
   const challengeIds = await seedChallenges();
   const userIds = await seedUsers();
   await seedUserData(userIds, challengeIds);
+  await seedCompletions(userIds, challengeIds);
   console.log("\nSeeding complete!");
 }
 

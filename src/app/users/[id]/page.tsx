@@ -8,11 +8,14 @@ import { getVoteCounts, getUserVotes } from "@/lib/votes";
 import { getSaveCounts } from "@/lib/savers";
 import { getUserChallengeIds } from "@/lib/my-list";
 import { getUserNoteChallengeIds } from "@/lib/notes";
+import { getRecentCompletionsForUser } from "@/lib/completions";
+import { getUserLeagueInfo } from "@/lib/leaderboard";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChallengeCard } from "@/components/challenge-card";
+import { LeagueBadge } from "@/components/league-badge";
 import { Bookmark } from "lucide-react";
 
 export default async function UserProfilePage({
@@ -32,7 +35,9 @@ export default async function UserProfilePage({
   const isOwnProfile = user?.id === id;
   const isLoggedIn = !!user;
 
-  const [savedChallenges, voteCounts, userVotes, saveCounts, myListIds, noteIds] =
+  const completionLimit = isOwnProfile ? 1000 : 3;
+
+  const [savedChallenges, voteCounts, userVotes, saveCounts, myListIds, noteIds, completions, leagueInfo] =
     await Promise.all([
       getUserChallengesByUserId(id),
       getVoteCounts(),
@@ -40,6 +45,8 @@ export default async function UserProfilePage({
       getSaveCounts(),
       getUserChallengeIds(),
       getUserNoteChallengeIds(),
+      getRecentCompletionsForUser(id, completionLimit),
+      getUserLeagueInfo(id),
     ]);
 
   const voteDataMap = Object.fromEntries(voteCounts);
@@ -47,11 +54,14 @@ export default async function UserProfilePage({
   const saveCountMap = Object.fromEntries(saveCounts);
 
   const submitterUsernames = [
-    ...new Set(
-      savedChallenges
+    ...new Set([
+      ...savedChallenges
         .map(({ challenges: c }) => c.submitted_by)
-        .filter((s): s is string => !!s)
-    ),
+        .filter((s): s is string => !!s),
+      ...completions
+        .map(({ challenge: c }) => c.submitted_by)
+        .filter((s): s is string => !!s),
+    ]),
   ];
   const submitterNames = await getSubmitterDisplayNames(submitterUsernames);
 
@@ -78,20 +88,30 @@ export default async function UserProfilePage({
               </AvatarFallback>
             </Avatar>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <CardTitle className="text-2xl">
                   {getDisplayName(userProfile)}
                 </CardTitle>
                 {isOwnProfile && (
                   <Badge variant="secondary">This is you</Badge>
                 )}
+                {leagueInfo && (
+                  <LeagueBadge league={leagueInfo.league} />
+                )}
               </div>
-              <div className="flex items-center gap-1 text-muted-foreground mt-1">
-                <Bookmark className="size-4" />
-                <span>
-                  {savedChallenges.length}{" "}
-                  {savedChallenges.length === 1 ? "challenge" : "challenges"} saved
-                </span>
+              <div className="flex items-center gap-3 text-muted-foreground mt-1">
+                <div className="flex items-center gap-1">
+                  <Bookmark className="size-4" />
+                  <span>
+                    {savedChallenges.length}{" "}
+                    {savedChallenges.length === 1 ? "challenge" : "challenges"} saved
+                  </span>
+                </div>
+                {isOwnProfile && leagueInfo && (
+                  <span className="font-semibold text-amber-800">
+                    {leagueInfo.total_points} pts
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -133,12 +153,38 @@ export default async function UserProfilePage({
       </section>
 
       <section>
-        <h2 className="text-xl font-semibold mb-4">Completed Challenges</h2>
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">Coming soon!</p>
-          </CardContent>
-        </Card>
+        <h2 className="text-xl font-semibold mb-4">
+          {isOwnProfile ? "Completed Challenges" : "Recent Completions"}
+          {completions.length > 0 ? ` (${completions.length})` : ""}
+        </h2>
+        {completions.length > 0 ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {completions.map(({ challenge }) => (
+              <ChallengeCard
+                key={challenge.id}
+                challenge={challenge}
+                isSaved={myListIds.has(challenge.id)}
+                upvotes={voteDataMap[challenge.id]?.upvotes ?? 0}
+                downvotes={voteDataMap[challenge.id]?.downvotes ?? 0}
+                userVote={(userVoteMap[challenge.id] as 1 | -1) ?? null}
+                hasNote={noteIds.has(challenge.id)}
+                saveCount={saveCountMap[challenge.id] ?? 0}
+                submitterDisplayName={challenge.submitted_by ? submitterNames[challenge.submitted_by] : undefined}
+                isLoggedIn={isLoggedIn}
+              />
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground">
+                {isOwnProfile
+                  ? "You haven't completed any challenges yet."
+                  : "This user hasn't completed any challenges yet."}
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </section>
     </div>
   );

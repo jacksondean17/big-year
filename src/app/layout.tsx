@@ -81,12 +81,11 @@ export default function RootLayout({
               </Link>
               <span className="text-border">|</span>
               <Link
-                href="/my-list"
+                href="/leaderboard"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
-                My List
+                Leaderboard
               </Link>
-              <span className="text-border">|</span>
               <AuthButton />
             </nav>
           </div>

@@ -163,15 +163,25 @@ export function AuthButton() {
 
   const avatarUrl = user.user_metadata?.avatar_url;
   const name = user.user_metadata?.full_name || user.email;
+  const profileUrl = `/users/${user.id}`;
 
   return (
     <div className="flex items-center gap-2">
+      <span className="text-border">|</span>
+      <a
+        href={profileUrl}
+        className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+      >
+        My Profile
+      </a>
       {avatarUrl && (
-        <img
-          src={avatarUrl}
-          alt={name ?? "User"}
-          className="size-7 rounded-full border border-border"
-        />
+        <a href={profileUrl}>
+          <img
+            src={avatarUrl}
+            alt={name ?? "User"}
+            className="size-7 rounded-full border border-border hover:ring-2 hover:ring-primary/50 transition-shadow"
+          />
+        </a>
       )}
       <Button variant="ghost" size="sm" onClick={handleSignOut}>
         <LogOut className="size-4" />
