@@ -505,44 +505,6 @@
     background: rgba(255, 250, 242, 0.8);
   }
 
-  .difficulty-easy {
-    background: rgba(42, 157, 143, 0.08) !important;
-    color: #3a8a7e !important;
-    border: 1px solid rgba(42, 157, 143, 0.2) !important;
-  }
-
-  .difficulty-medium {
-    background: rgba(224, 143, 110, 0.25) !important;
-    color: #7a3f26 !important;
-    border: 1px solid rgba(224, 143, 110, 0.5) !important;
-  }
-
-  .difficulty-hard {
-    background: rgba(160, 50, 40, 0.35) !important;
-    color: #5c1a14 !important;
-    border: 1px solid rgba(160, 50, 40, 0.6) !important;
-    font-weight: 600;
-  }
-
-  .dark .difficulty-easy {
-    background: rgba(53, 183, 168, 0.1) !important;
-    color: #8ad4ca !important;
-    border-color: rgba(53, 183, 168, 0.2) !important;
-  }
-
-  .dark .difficulty-medium {
-    background: rgba(240, 160, 123, 0.25) !important;
-    color: #ffe0d2 !important;
-    border-color: rgba(240, 160, 123, 0.45) !important;
-  }
-
-  .dark .difficulty-hard {
-    background: rgba(212, 106, 95, 0.4) !important;
-    color: #ffd3cd !important;
-    border-color: rgba(212, 106, 95, 0.6) !important;
-    font-weight: 600;
-  }
-
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

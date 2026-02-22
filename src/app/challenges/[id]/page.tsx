@@ -1,4 +1,3 @@
-import React from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -29,12 +28,6 @@ import { SaversList } from "@/components/savers-list";
 import { CompletionButton } from "@/components/completion-button";
 import { CompletersList } from "@/components/completers-list";
 import { UserPen } from "lucide-react";
-
-const difficultyStyle: Record<string, React.CSSProperties> = {
-  Easy: { background: "rgba(42, 157, 143, 0.08)", color: "#3a8a7e", border: "1px solid rgba(42, 157, 143, 0.2)" },
-  Medium: { background: "rgba(224, 143, 110, 0.3)", color: "#7a3f26", border: "1px solid rgba(224, 143, 110, 0.55)" },
-  Hard: { background: "rgba(196, 100, 50, 0.6)", color: "#4a1a0a", border: "1px solid rgba(196, 100, 50, 0.8)", fontWeight: 700 },
-};
 
 export default async function ChallengePage({
   params,
@@ -84,12 +77,6 @@ export default async function ChallengePage({
         <CardHeader>
           <div className="flex flex-wrap gap-2 mb-2">
             <Badge variant="outline">{challenge.category}</Badge>
-            <Badge
-              variant="secondary"
-              style={difficultyStyle[challenge.difficulty]}
-            >
-              {challenge.difficulty}
-            </Badge>
           </div>
           <div className="mt-2">
             <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-base font-semibold text-amber-800">

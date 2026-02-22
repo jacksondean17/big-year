@@ -3,11 +3,14 @@ export interface Challenge {
   title: string;
   description: string;
   estimated_time: string;
-  difficulty: "Easy" | "Medium" | "Hard";
   completion_criteria: string;
   category: string;
   points: number | null;
   submitted_by: string | null;
+  depth: number | null;
+  courage: number | null;
+  story_power: number | null;
+  commitment: number | null;
 }
 
 export type UserVoteType = 1 | -1 | null;

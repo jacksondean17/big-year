@@ -6,8 +6,6 @@ import type { SortOption, VoteData, ChallengeSaver } from "@/lib/types";
 import { ChallengeCard } from "./challenge-card";
 import { ChallengeFilters } from "./challenge-filters";
 
-const DIFFICULTIES = ["Easy", "Medium", "Hard"];
-
 function getControversy(v: VoteData): number {
   const total = v.upvotes + v.downvotes;
   const max = Math.max(v.upvotes, v.downvotes);
@@ -39,9 +37,6 @@ export function ChallengeList({
   isLoggedIn?: boolean;
 }) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(
-    null
-  );
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSort, setSelectedSort] = useState<SortOption>("default");
 
@@ -53,8 +48,6 @@ export function ChallengeList({
   const filtered = useMemo(() => {
     let result = challenges.filter((c) => {
       if (selectedCategory && c.category !== selectedCategory) return false;
-      if (selectedDifficulty && c.difficulty !== selectedDifficulty)
-        return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         return (
@@ -91,7 +84,6 @@ export function ChallengeList({
   }, [
     challenges,
     selectedCategory,
-    selectedDifficulty,
     searchQuery,
     selectedSort,
     voteData,
@@ -101,13 +93,10 @@ export function ChallengeList({
     <div className="space-y-6">
       <ChallengeFilters
         categories={categories}
-        difficulties={DIFFICULTIES}
         selectedCategory={selectedCategory}
-        selectedDifficulty={selectedDifficulty}
         searchQuery={searchQuery}
         selectedSort={selectedSort}
         onCategoryChange={setSelectedCategory}
-        onDifficultyChange={setSelectedDifficulty}
         onSearchChange={setSearchQuery}
         onSortChange={setSelectedSort}
       />

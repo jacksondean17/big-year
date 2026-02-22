@@ -6,26 +6,20 @@ import type { SortOption } from "@/lib/types";
 
 interface ChallengeFiltersProps {
   categories: string[];
-  difficulties: string[];
   selectedCategory: string | null;
-  selectedDifficulty: string | null;
   searchQuery: string;
   selectedSort: SortOption;
   onCategoryChange: (category: string | null) => void;
-  onDifficultyChange: (difficulty: string | null) => void;
   onSearchChange: (query: string) => void;
   onSortChange: (sort: SortOption) => void;
 }
 
 export function ChallengeFilters({
   categories,
-  difficulties,
   selectedCategory,
-  selectedDifficulty,
   searchQuery,
   selectedSort,
   onCategoryChange,
-  onDifficultyChange,
   onSearchChange,
   onSortChange,
 }: ChallengeFiltersProps) {
@@ -58,31 +52,6 @@ export function ChallengeFilters({
               }
             >
               {cat}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <p className="text-sm font-medium text-muted-foreground">Difficulty</p>
-        <div className="flex flex-wrap gap-1.5">
-          <Button
-            variant={selectedDifficulty === null ? "default" : "outline"}
-            size="sm"
-            onClick={() => onDifficultyChange(null)}
-          >
-            All
-          </Button>
-          {difficulties.map((diff) => (
-            <Button
-              key={diff}
-              variant={selectedDifficulty === diff ? "default" : "outline"}
-              size="sm"
-              onClick={() =>
-                onDifficultyChange(selectedDifficulty === diff ? null : diff)
-              }
-            >
-              {diff}
             </Button>
           ))}
         </div>

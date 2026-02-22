@@ -20,7 +20,7 @@ Six main tables with Row Level Security:
 
 | Table | Purpose |
 |-------|---------|
-| `challenges` | The ~100 challenge definitions (title, description, difficulty, category, etc.) |
+| `challenges` | The ~100 challenge definitions (title, description, category, scoring dimensions, etc.) |
 | `user_challenges` | Junction table: which users saved which challenges |
 | `challenge_votes` | Upvote/downvote per user per challenge (vote_type: 1 or -1) |
 | `challenge_notes` | User notes on challenges |
@@ -35,6 +35,7 @@ Six main tables with Row Level Security:
 
 **Triggers:**
 - `on_auth_user_created` -> auto-creates profile from Discord user metadata
+- `trg_compute_challenge_points` -> auto-computes `points` from scoring dimensions (depth, courage, story_power, commitment) using formula: `round(((max + avg) / 2) ^ 1.6)`
 
 ## Key Files
 
@@ -74,12 +75,14 @@ src/
 │   ├── discord.ts            # Discord API (get guild nickname)
 │   └── types.ts              # TypeScript interfaces
 supabase/
-├── migrations/               # 8 SQL migrations (schema evolution)
+├── migrations/               # 11 SQL migrations (schema evolution)
 └── config.toml               # Supabase local config
 data/
 └── *.csv                     # Challenge seed data
 scripts/
-└── seed-challenges.ts        # Seed script (npm run seed)
+├── seed-challenges.ts        # Seed script (npm run seed)
+├── sync-challenges.ts        # Sync challenges from CSV (npm run sync:challenges)
+└── import-scoring.ts         # Import scoring dimensions from CSV (npm run import:scoring)
 ```
 
 ## Running Locally
@@ -122,9 +125,13 @@ interface Challenge {
   title: string;
   description: string;
   estimated_time: string;
-  difficulty: "Easy" | "Medium" | "Hard";
   completion_criteria: string;
   category: string;  // Achievement, Social, Physical, etc.
+  points: number | null;  // Auto-computed by DB trigger from scoring dimensions
+  depth: number | null;       // 1-10
+  courage: number | null;     // 1-10
+  story_power: number | null; // 1-10
+  commitment: number | null;  // 1-10
 }
 ```
 

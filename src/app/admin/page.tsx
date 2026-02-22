@@ -23,7 +23,6 @@ export default async function AdminPage() {
               <th className="px-4 py-3 font-medium">ID</th>
               <th className="px-4 py-3 font-medium">Title</th>
               <th className="px-4 py-3 font-medium">Category</th>
-              <th className="px-4 py-3 font-medium">Difficulty</th>
               <th className="px-4 py-3 font-medium">Points</th>
               <th className="px-4 py-3 font-medium"></th>
             </tr>
@@ -40,9 +39,6 @@ export default async function AdminPage() {
                 <td className="px-4 py-3 font-medium">{challenge.title}</td>
                 <td className="px-4 py-3 text-muted-foreground">
                   {challenge.category}
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {challenge.difficulty}
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">
                   {challenge.points ?? "—"}

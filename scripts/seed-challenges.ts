@@ -73,14 +73,6 @@ const TEST_USERS = [
   })),
 ];
 
-// Normalize difficulty values
-const normalizeDifficulty = (d: string): string => {
-  const lower = d.toLowerCase();
-  if (lower.includes("easy")) return "Easy";
-  if (lower.includes("hard")) return "Hard";
-  return "Medium";
-};
-
 function parseCsv(csvPath: string) {
   const csv = readFileSync(csvPath, "utf-8");
   const records: Record<string, string>[] = parse(csv, {
@@ -93,22 +85,14 @@ function parseCsv(csvPath: string) {
     .map((r) => {
       const submittedBy =
         (r["Who Submitted"] || r["Idea Credit"] || "").trim() || null;
-      // Assign random points 1-30 based on difficulty
-      const diff = normalizeDifficulty(r["Difficulty"]);
-      const pointsMin = diff === "Easy" ? 1 : diff === "Medium" ? 8 : 18;
-      const pointsMax = diff === "Easy" ? 10 : diff === "Medium" ? 20 : 30;
-      const points =
-        pointsMin + Math.floor(Math.random() * (pointsMax - pointsMin + 1));
 
       return {
         title: r["Title"],
         description: r["Description"],
         estimated_time: r["Estimated Time"],
-        difficulty: diff,
         completion_criteria: r["Completion Criteria"],
         category: r["Category"],
         submitted_by: submittedBy,
-        points,
       };
     });
 }

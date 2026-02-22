@@ -30,10 +30,12 @@ export async function createChallenge(formData: FormData) {
     title: formData.get("title") as string,
     description: formData.get("description") as string,
     estimated_time: formData.get("estimated_time") as string,
-    difficulty: formData.get("difficulty") as string,
     completion_criteria: formData.get("completion_criteria") as string,
     category: formData.get("category") as string,
-    points: formData.get("points") ? Number(formData.get("points")) : null,
+    depth: formData.get("depth") ? parseInt(formData.get("depth") as string) : null,
+    courage: formData.get("courage") ? parseInt(formData.get("courage") as string) : null,
+    story_power: formData.get("story_power") ? parseInt(formData.get("story_power") as string) : null,
+    commitment: formData.get("commitment") ? parseInt(formData.get("commitment") as string) : null,
   });
 
   if (error) throw error;
@@ -50,10 +52,12 @@ export async function updateChallenge(id: number, formData: FormData) {
       title: formData.get("title") as string,
       description: formData.get("description") as string,
       estimated_time: formData.get("estimated_time") as string,
-      difficulty: formData.get("difficulty") as string,
       completion_criteria: formData.get("completion_criteria") as string,
       category: formData.get("category") as string,
-      points: formData.get("points") ? Number(formData.get("points")) : null,
+      depth: formData.get("depth") ? parseInt(formData.get("depth") as string) : null,
+      courage: formData.get("courage") ? parseInt(formData.get("courage") as string) : null,
+      story_power: formData.get("story_power") ? parseInt(formData.get("story_power") as string) : null,
+      commitment: formData.get("commitment") ? parseInt(formData.get("commitment") as string) : null,
     })
     .eq("id", id);
 
