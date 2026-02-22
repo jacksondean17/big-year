@@ -18,6 +18,7 @@ import {
   getAllCompletionsForChallenge,
 } from "@/lib/completions";
 import { getCompletionMedia } from "@/lib/media";
+import { getCommentsForChallenge, getUserCommentVotes } from "@/lib/comments";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +28,7 @@ import { ChallengeNote } from "@/components/challenge-note";
 import { SaversList } from "@/components/savers-list";
 import { CompletionButton } from "@/components/completion-button";
 import { CompletersList } from "@/components/completers-list";
+import { CommentsSection } from "@/components/comments-section";
 import { UserPen } from "lucide-react";
 
 export default async function ChallengePage({
@@ -45,7 +47,7 @@ export default async function ChallengePage({
   const { data: { user } } = await supabase.auth.getUser();
   const isLoggedIn = !!user;
 
-  const [savedIds, voteData, userVote, userNote, savers, saveCount, submitterProfile, userCompletion, completionCount, completers] =
+  const [savedIds, voteData, userVote, userNote, savers, saveCount, submitterProfile, userCompletion, completionCount, completers, comments] =
     await Promise.all([
       getUserChallengeIds(),
       getVoteCountForChallenge(challenge.id),
@@ -59,11 +61,13 @@ export default async function ChallengePage({
       getUserCompletionForChallenge(challenge.id),
       getCompletionCountForChallenge(challenge.id),
       getAllCompletionsForChallenge(challenge.id),
+      getCommentsForChallenge(challenge.id),
     ]);
   const isSaved = savedIds.has(challenge.id);
-  const completionMedia = userCompletion
-    ? await getCompletionMedia(userCompletion.id)
-    : [];
+  const [completionMedia, userCommentVotes] = await Promise.all([
+    userCompletion ? getCompletionMedia(userCompletion.id) : Promise.resolve([]),
+    getUserCommentVotes(comments.map((c) => c.id)),
+  ]);
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -153,6 +157,13 @@ export default async function ChallengePage({
       <div className="mt-6 space-y-4">
         <CompletersList completers={completers} completionCount={completionCount} />
         <SaversList savers={savers} count={saveCount} />
+        <CommentsSection
+          challengeId={challenge.id}
+          initialComments={comments}
+          initialUserVotes={userCommentVotes}
+          currentUserId={user?.id ?? null}
+          isLoggedIn={isLoggedIn}
+        />
       </div>
     </div>
   );

@@ -16,7 +16,7 @@ A personal challenge tracker web app for "The Big Year" - a collection of meanin
 
 ## Database Schema
 
-Six main tables with Row Level Security:
+Eight main tables with Row Level Security:
 
 | Table | Purpose |
 |-------|---------|
@@ -27,11 +27,14 @@ Six main tables with Row Level Security:
 | `profiles` | User display info (display_name, avatar_url, guild_nickname) |
 | `challenge_completions` | Tracks user completion status (planned/in_progress/completed) per challenge |
 | `completion_media` | Proof uploads (images/videos) linked to completions, stored in R2 |
+| `challenge_comments` | User comments on challenges (flat, public) |
+| `challenge_comment_votes` | Upvote/downvote per user per comment (vote_type: 1 or -1) |
 
 **Key Views:**
 - `challenge_vote_counts` - Aggregated scores per challenge
 - `challenge_save_counts` - How many users saved each challenge
 - `challenge_completion_counts` - How many users completed each challenge
+- `challenge_comment_vote_counts` - Aggregated scores per comment
 
 **Triggers:**
 - `on_auth_user_created` -> auto-creates profile from Discord user metadata

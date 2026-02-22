@@ -98,6 +98,24 @@ export interface LeaderboardContext {
   motivationMessage: string;
 }
 
+export interface ChallengeComment {
+  id: string;
+  user_id: string;
+  challenge_id: number;
+  comment_text: string;
+  created_at: string;
+  updated_at: string;
+  profiles: UserProfile;
+  upvotes: number;
+  downvotes: number;
+  score: number;
+}
+
+export interface CommentVoteData {
+  comment_id: string;
+  vote_type: 1 | -1;
+}
+
 export interface ChallengeCompleter {
   user_id: string;
   status: CompletionStatus;
