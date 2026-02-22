@@ -87,7 +87,7 @@ async function generateCompletionMessage(
   const apiKey = process.env.CLAUDE_API_KEY;
   if (!apiKey) {
     console.log("[Discord] No CLAUDE_API_KEY, using fallback message");
-    return `${discordPing} completed a challenge: **${challengeTitle}**! Let's go!`;
+    return `${discordPing} completed a challenge: **${challengeTitle}**!\nAbsolutely legendary.`;
   }
 
   try {
@@ -102,7 +102,7 @@ async function generateCompletionMessage(
 
 1. A single short sentence stating what they did, in a straightforward, excited, conversational way. Start the sentence with exactly "${discordPing}" (this is a Discord ping, keep it exactly as-is). State what they accomplished based on the challenge name. Don't be cute or use puns. Don't use quotes or quotation marks.
 
-2. After the sentence, on a new line, a single creative exclamation word or phrase. Be EXTREMELY creative and varied — pull from memes, pop culture quotes, obscure words, slang, movie lines, etc. Examples: "Now THIS is pod racing!", "Main character energy.", "Straight fire.", "Huzzah!", "Built different.", "Certified legend.", "What a time to be alive." If there's an obvious connection between the exclamation and the challenge, go for it — but don't force it. Most of the time a random creative phrase is better than a bad connection.
+2. After the sentence, on a new line, a single creative exclamation word or phrase. Be EXTREMELY creative and varied — pull from memes, pop culture quotes, obscure words, slang, movie lines, etc. Examples: "Now THIS is pod racing!", "Main character energy.", "Straight fire.", "Huzzah!", "Built different.", "Certified legend.", "What a time to be alive." If there's an obvious connection between the exclamation and the challenge, go for it — but don't force it. Most of the time a random creative phrase is better than a bad connection. NEVER use generic or boring phrases like "Good job!", "Let's go!", "Amazing!", "Incredible!", "Well done!", "Awesome!", "Congrats!", "Nailed it!", "Crushed it!" — always pick something unexpected and distinctive.
 
 The challenge name is: "${challengeTitle}"
 
@@ -117,7 +117,7 @@ Reply with ONLY the message, nothing else.`,
     return text || `${discordPing} completed a challenge: **${challengeTitle}**! Let's go!`;
   } catch (error) {
     console.error("[Discord] Claude API error, using fallback:", error);
-    return `${discordPing} completed a challenge: **${challengeTitle}**! Let's go!`;
+    return `${discordPing} completed a challenge: **${challengeTitle}**!\nAbsolutely legendary.`;
   }
 }
 
