@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, Spectral, JetBrains_Mono } from "next/font/google";
 import Link from "next/link";
 import { AuthButton } from "@/components/auth-button";
+import { MobileNav } from "@/components/mobile-nav";
 import "./globals.css";
 
 const displayFont = Fraunces({
@@ -52,42 +53,43 @@ export default function RootLayout({
       >
         <div className="filigree-layer" aria-hidden="true" />
         <header className="site-header">
-          <div className="header-inner mx-auto max-w-5xl px-4 py-4">
-            <a href="/" className="brand text-xl tracking-tight">
+          <div className="header-inner mx-auto max-w-5xl px-4 py-4 min-w-0">
+            <a href="/" className="brand text-xl tracking-tight shrink-0">
               The Big Year
             </a>
-            <nav className="flex items-center gap-3">
+            <nav className="hidden md:flex items-center gap-3 overflow-x-auto min-w-0">
               <a
                 href="https://docs.google.com/document/d/143Nhx7JKWc2l0QVy8OtCkHPzdZ82VM8NJQ61VgzJtJ4/edit?tab=t.0"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0"
               >
                 Guide
               </a>
-              <span className="text-border">|</span>
+              <span className="text-border shrink-0">|</span>
               <Link
                 href="/schedule"
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0"
               >
                 Schedule
               </Link>
-              <span className="text-border">|</span>
+              <span className="text-border shrink-0">|</span>
               <Link
                 href="/users"
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0"
               >
                 Users
               </Link>
-              <span className="text-border">|</span>
+              <span className="text-border shrink-0">|</span>
               <Link
                 href="/leaderboard"
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0"
               >
                 Leaderboard
               </Link>
               <AuthButton />
             </nav>
+            <MobileNav />
           </div>
         </header>
         <main className="content-wrap mx-auto max-w-5xl px-4 py-6">
