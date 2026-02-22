@@ -59,6 +59,7 @@ export async function markChallengeComplete(
         if (challenge && profile?.discord_id) {
           console.log("[Discord] Calling sendCompletionMessage...");
           await sendCompletionMessage({
+            userId: user.id,
             discordUserId: profile.discord_id,
             displayName: profile.guild_nickname ?? profile.display_name ?? "Someone",
             challengeTitle: challenge.title,

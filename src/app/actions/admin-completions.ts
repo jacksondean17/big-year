@@ -63,6 +63,7 @@ export async function sendCompletionPing(
     .single();
 
   await sendCompletionMessage({
+    userId,
     discordUserId: profile.discord_id,
     displayName: profile.guild_nickname ?? profile.display_name ?? "Someone",
     challengeTitle: challenge.title,
