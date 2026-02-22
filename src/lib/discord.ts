@@ -81,24 +81,32 @@ export async function getGuildDisplayName(
  * Falls back to a generic message if the API call fails.
  */
 async function generateCompletionMessage(
-  displayName: string,
+  discordPing: string,
   challengeTitle: string
 ): Promise<string> {
   const apiKey = process.env.CLAUDE_API_KEY;
   if (!apiKey) {
     console.log("[Discord] No CLAUDE_API_KEY, using fallback message");
-    return `${displayName} completed a challenge: **${challengeTitle}**!`;
+    return `${discordPing} completed a challenge: **${challengeTitle}**! Let's go!`;
   }
 
   try {
     const client = new Anthropic({ apiKey });
     const response = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 100,
+      model: "claude-sonnet-latest",
+      max_tokens: 150,
       messages: [
         {
           role: "user",
-          content: `Write a single short sentence announcing that ${displayName} completed this challenge: "${challengeTitle}". State what they did in a straightforward, excited, conversational way. Don't be cute or use puns. Use their name at the start. Don't use quotes or quotation marks. Just the sentence, nothing else.`,
+          content: `Write a Discord message announcing that someone completed a challenge. The message has two parts:
+
+1. A single short sentence stating what they did, in a straightforward, excited, conversational way. Start the sentence with exactly "${discordPing}" (this is a Discord ping, keep it exactly as-is). State what they accomplished based on the challenge name. Don't be cute or use puns. Don't use quotes or quotation marks.
+
+2. After the sentence, on a new line, a single creative exclamation word or phrase. Be EXTREMELY creative and varied — pull from memes, pop culture quotes, obscure words, slang, movie lines, etc. Examples: "Now THIS is pod racing!", "Main character energy.", "Straight fire.", "Huzzah!", "Built different.", "Certified legend.", "What a time to be alive." If there's an obvious connection between the exclamation and the challenge, go for it — but don't force it. Most of the time a random creative phrase is better than a bad connection.
+
+The challenge name is: "${challengeTitle}"
+
+Reply with ONLY the message, nothing else.`,
         },
       ],
     });
@@ -106,10 +114,10 @@ async function generateCompletionMessage(
     const text =
       response.content[0].type === "text" ? response.content[0].text.trim() : null;
     console.log("[Discord] Generated message:", text);
-    return text || `${displayName} completed a challenge: **${challengeTitle}**!`;
+    return text || `${discordPing} completed a challenge: **${challengeTitle}**! Let's go!`;
   } catch (error) {
     console.error("[Discord] Claude API error, using fallback:", error);
-    return `${displayName} completed a challenge: **${challengeTitle}**!`;
+    return `${discordPing} completed a challenge: **${challengeTitle}**! Let's go!`;
   }
 }
 
@@ -145,8 +153,9 @@ export async function sendCompletionMessage(params: {
     return;
   }
 
+  const discordPing = `@${params.displayName}`;
   const message = await generateCompletionMessage(
-    params.displayName,
+    discordPing,
     params.challengeTitle
   );
 
@@ -178,7 +187,7 @@ export async function sendCompletionMessage(params: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          content: `<@${params.discordUserId}> ${message}`,
+          content: message.replace(discordPing, `<@${params.discordUserId}>`),
           embeds: [embed],
         }),
       }
