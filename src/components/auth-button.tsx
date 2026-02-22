@@ -38,9 +38,12 @@ export function AuthButton() {
       setUser(session?.user ?? null);
       setLoading(false);
 
-      // Only sync on an actual new sign-in, not on page load with existing session.
-      // INITIAL_SESSION fires on mount with an existing session — skip that.
-      if (event === "SIGNED_IN" && session?.user && !hasSyncedRef.current) {
+      // Mark as synced on initial load so we don't trigger on token refresh.
+      // SIGNED_IN fires on both fresh login AND token refresh — we only want
+      // to sync on a fresh login (when coming back from the OAuth callback).
+      if (event === "INITIAL_SESSION") {
+        hasSyncedRef.current = !!session?.user;
+      } else if (event === "SIGNED_IN" && session?.user && !hasSyncedRef.current) {
         hasSyncedRef.current = true;
         console.log("[AuthButton] User signed in, syncing Discord nickname...");
         syncDiscordNickname()
@@ -53,15 +56,7 @@ export function AuthButton() {
           .catch((err) => {
             console.error("[AuthButton] Discord sync error:", err);
           });
-      }
-
-      // Mark as synced on initial load so we don't trigger on token refresh
-      if (event === "INITIAL_SESSION" && session?.user) {
-        hasSyncedRef.current = true;
-      }
-
-      // Reset sync flag on sign out
-      if (event === "SIGNED_OUT") {
+      } else if (event === "SIGNED_OUT") {
         hasSyncedRef.current = false;
       }
     });
