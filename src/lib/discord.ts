@@ -73,3 +73,68 @@ export async function getGuildDisplayName(
     member.nick ?? member.user?.global_name ?? member.user?.username ?? null
   );
 }
+
+/**
+ * Sends a celebratory embed to the Discord completions channel.
+ * Errors are logged but never thrown — a failed message should not block the completion flow.
+ */
+export async function sendCompletionMessage(params: {
+  discordUserId: string;
+  challengeTitle: string;
+  challengeId: number;
+  points: number | null;
+  category: string;
+  note?: string | null;
+}) {
+  const botToken = process.env.DISCORD_BOT_TOKEN;
+  const channelId = process.env.DISCORD_COMPLETIONS_CHANNEL_ID;
+
+  if (!botToken || !channelId) {
+    console.error(
+      "Missing DISCORD_BOT_TOKEN or DISCORD_COMPLETIONS_CHANNEL_ID"
+    );
+    return;
+  }
+
+  const challengeUrl = `https://bigyear.xyz/challenges/${params.challengeId}`;
+
+  const embed: Record<string, unknown> = {
+    title: params.challengeTitle,
+    url: challengeUrl,
+    color: 0xffd700, // Gold
+    fields: [
+      ...(params.points != null
+        ? [{ name: "Points", value: String(params.points), inline: true }]
+        : []),
+      { name: "Category", value: params.category, inline: true },
+    ],
+  };
+
+  if (params.note) {
+    embed.description = params.note;
+  }
+
+  try {
+    const response = await fetch(
+      `${DISCORD_API_BASE}/channels/${channelId}/messages`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bot ${botToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content: `<@${params.discordUserId}> completed a challenge!`,
+          embeds: [embed],
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("Discord completion message error:", error);
+    }
+  } catch (error) {
+    console.error("Failed to send completion message:", error);
+  }
+}
