@@ -89,9 +89,17 @@ export async function sendCompletionMessage(params: {
   const botToken = process.env.DISCORD_BOT_TOKEN;
   const channelId = process.env.DISCORD_COMPLETIONS_CHANNEL_ID;
 
+  console.log("[Discord] sendCompletionMessage called with:", {
+    discordUserId: params.discordUserId,
+    challengeTitle: params.challengeTitle,
+    challengeId: params.challengeId,
+    hasBotToken: !!botToken,
+    hasChannelId: !!channelId,
+  });
+
   if (!botToken || !channelId) {
     console.error(
-      "Missing DISCORD_BOT_TOKEN or DISCORD_COMPLETIONS_CHANNEL_ID"
+      "[Discord] Missing DISCORD_BOT_TOKEN or DISCORD_COMPLETIONS_CHANNEL_ID"
     );
     return;
   }
@@ -132,9 +140,11 @@ export async function sendCompletionMessage(params: {
 
     if (!response.ok) {
       const error = await response.json();
-      console.error("Discord completion message error:", error);
+      console.error("[Discord] API error:", response.status, error);
+    } else {
+      console.log("[Discord] Message sent successfully!");
     }
   } catch (error) {
-    console.error("Failed to send completion message:", error);
+    console.error("[Discord] Failed to send completion message:", error);
   }
 }

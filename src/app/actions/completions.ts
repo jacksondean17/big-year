@@ -36,6 +36,7 @@ export async function markChallengeComplete(
   if (error) throw error;
 
   // Send Discord celebration message for completions (fire-and-forget)
+  console.log("[Discord] markChallengeComplete called with status:", status, "challengeId:", challengeId);
   if (status === "completed") {
     (async () => {
       try {
@@ -52,7 +53,11 @@ export async function markChallengeComplete(
             .single(),
         ]);
 
+        console.log("[Discord] challenge:", challenge);
+        console.log("[Discord] profile discord_id:", profile?.discord_id);
+
         if (challenge && profile?.discord_id) {
+          console.log("[Discord] Calling sendCompletionMessage...");
           await sendCompletionMessage({
             discordUserId: profile.discord_id,
             challengeTitle: challenge.title,
@@ -61,9 +66,11 @@ export async function markChallengeComplete(
             category: challenge.category,
             note,
           });
+        } else {
+          console.log("[Discord] Skipped — missing challenge or discord_id");
         }
       } catch (err) {
-        console.error("Failed to send Discord completion message:", err);
+        console.error("[Discord] Failed to send completion message:", err);
       }
     })();
   }
