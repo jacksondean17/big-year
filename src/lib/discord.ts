@@ -95,7 +95,6 @@ async function generateCompletionMessage(
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 150,
-      temperature: 0.9,
       messages: [
         {
           role: "user",
