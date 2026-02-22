@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DeleteChallengeButton } from "@/components/delete-challenge-button";
 
 export default async function EditChallengePage({
   params,
@@ -135,6 +136,25 @@ export default async function EditChallengePage({
               </Button>
             </div>
           </form>
+        </CardContent>
+      </Card>
+
+      {/* Danger Zone */}
+      <Card className="max-w-2xl mt-12 border-destructive/40">
+        <CardHeader>
+          <CardTitle className="text-destructive">Danger Zone</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">Delete this challenge</p>
+            <p className="text-sm text-muted-foreground">
+              Once deleted, there is no going back. All saves, completions, votes, notes, and comments will be removed.
+            </p>
+          </div>
+          <DeleteChallengeButton
+            challengeId={challenge.id}
+            challengeTitle={challenge.title}
+          />
         </CardContent>
       </Card>
     </div>

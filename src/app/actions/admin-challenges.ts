@@ -64,3 +64,55 @@ export async function updateChallenge(id: number, formData: FormData) {
   if (error) throw error;
   redirect("/admin");
 }
+
+export async function getChallengeStats(id: number) {
+  await assertAdmin();
+  const supabase = getServiceClient();
+
+  const [saves, completions, votes, notes, comments] = await Promise.all([
+    supabase.from("user_challenges").select("*", { count: "exact", head: true }).eq("challenge_id", id),
+    supabase.from("challenge_completions").select("*", { count: "exact", head: true }).eq("challenge_id", id),
+    supabase.from("challenge_votes").select("*", { count: "exact", head: true }).eq("challenge_id", id),
+    supabase.from("challenge_notes").select("*", { count: "exact", head: true }).eq("challenge_id", id),
+    supabase.from("challenge_comments").select("*", { count: "exact", head: true }).eq("challenge_id", id),
+  ]);
+
+  return {
+    saves: saves.count ?? 0,
+    completions: completions.count ?? 0,
+    votes: votes.count ?? 0,
+    notes: notes.count ?? 0,
+    comments: comments.count ?? 0,
+  };
+}
+
+export async function deleteChallenge(id: number) {
+  await assertAdmin();
+  const supabase = getServiceClient();
+
+  // Delete comment votes first (depends on comments)
+  const commentIds = (await supabase.from("challenge_comments").select("id").eq("challenge_id", id)).data?.map((c) => c.id) ?? [];
+  if (commentIds.length > 0) {
+    await supabase.from("challenge_comment_votes").delete().in("comment_id", commentIds);
+  }
+
+  // Delete completion media (depends on completions)
+  const completionIds = (await supabase.from("challenge_completions").select("id").eq("challenge_id", id)).data?.map((c) => c.id) ?? [];
+  if (completionIds.length > 0) {
+    await supabase.from("completion_media").delete().in("completion_id", completionIds);
+  }
+
+  // Delete all direct challenge references
+  await Promise.all([
+    supabase.from("challenge_votes").delete().eq("challenge_id", id),
+    supabase.from("challenge_notes").delete().eq("challenge_id", id),
+    supabase.from("user_challenges").delete().eq("challenge_id", id),
+    supabase.from("challenge_comments").delete().eq("challenge_id", id),
+    supabase.from("challenge_completions").delete().eq("challenge_id", id),
+  ]);
+
+  const { error } = await supabase.from("challenges").delete().eq("id", id);
+  if (error) throw error;
+
+  redirect("/admin");
+}
