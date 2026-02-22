@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { sendCompletionMessage } from "@/lib/discord";
 import type { Completion, CompletionStatus, ChallengeCompleter } from "@/lib/types";
 
 export async function markChallengeComplete(
@@ -33,6 +34,40 @@ export async function markChallengeComplete(
     .single();
 
   if (error) throw error;
+
+  // Send Discord celebration message for completions (fire-and-forget)
+  if (status === "completed") {
+    (async () => {
+      try {
+        const [{ data: challenge }, { data: profile }] = await Promise.all([
+          supabase
+            .from("challenges")
+            .select("title, points, category")
+            .eq("id", challengeId)
+            .single(),
+          supabase
+            .from("profiles")
+            .select("discord_id")
+            .eq("id", user.id)
+            .single(),
+        ]);
+
+        if (challenge && profile?.discord_id) {
+          await sendCompletionMessage({
+            discordUserId: profile.discord_id,
+            challengeTitle: challenge.title,
+            challengeId,
+            points: challenge.points,
+            category: challenge.category,
+            note,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to send Discord completion message:", err);
+      }
+    })();
+  }
+
   return data as Completion;
 }
 

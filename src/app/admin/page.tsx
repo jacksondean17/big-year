@@ -11,9 +11,14 @@ export default async function AdminPage() {
         <p className="text-sm text-muted-foreground">
           {challenges.length} challenges
         </p>
-        <Button asChild size="sm">
-          <Link href="/admin/challenges/new">Add Challenge</Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild size="sm" variant="outline">
+            <Link href="/admin/completions">Completions</Link>
+          </Button>
+          <Button asChild size="sm">
+            <Link href="/admin/challenges/new">Add Challenge</Link>
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-lg border">
