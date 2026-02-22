@@ -8,7 +8,8 @@ import { getVoteCounts, getUserVotes } from "@/lib/votes";
 import { getSaveCounts } from "@/lib/savers";
 import { getUserChallengeIds } from "@/lib/my-list";
 import { getUserNoteChallengeIds } from "@/lib/notes";
-import { getRecentCompletionsForUser } from "@/lib/completions";
+import { getCompletionsForUser } from "@/lib/completions";
+import type { CompletionStatus } from "@/lib/types";
 import { getUserLeagueInfo } from "@/lib/leaderboard";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -35,9 +36,7 @@ export default async function UserProfilePage({
   const isOwnProfile = user?.id === id;
   const isLoggedIn = !!user;
 
-  const completionLimit = isOwnProfile ? 1000 : 3;
-
-  const [savedChallenges, voteCounts, userVotes, saveCounts, myListIds, noteIds, completions, leagueInfo] =
+  const [savedChallenges, voteCounts, userVotes, saveCounts, myListIds, noteIds, allCompletions, leagueInfo] =
     await Promise.all([
       getUserChallengesByUserId(id),
       getVoteCounts(),
@@ -45,9 +44,16 @@ export default async function UserProfilePage({
       getSaveCounts(),
       getUserChallengeIds(),
       getUserNoteChallengeIds(),
-      getRecentCompletionsForUser(id, completionLimit),
+      getCompletionsForUser(id, {
+        completedOnly: !isOwnProfile,
+        limit: isOwnProfile ? 1000 : 3,
+      }),
       getUserLeagueInfo(id),
     ]);
+
+  const completed = allCompletions.filter((c) => c.status === "completed");
+  const inProgress = allCompletions.filter((c) => c.status === "in_progress");
+  const planned = allCompletions.filter((c) => c.status === "planned");
 
   const voteDataMap = Object.fromEntries(voteCounts);
   const userVoteMap = Object.fromEntries(userVotes);
@@ -58,7 +64,7 @@ export default async function UserProfilePage({
       ...savedChallenges
         .map(({ challenges: c }) => c.submitted_by)
         .filter((s): s is string => !!s),
-      ...completions
+      ...allCompletions
         .map(({ challenge: c }) => c.submitted_by)
         .filter((s): s is string => !!s),
     ]),
@@ -152,40 +158,121 @@ export default async function UserProfilePage({
         )}
       </section>
 
-      <section>
-        <h2 className="text-xl font-semibold mb-4">
-          {isOwnProfile ? "Completed Challenges" : "Recent Completions"}
-          {completions.length > 0 ? ` (${completions.length})` : ""}
-        </h2>
-        {completions.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {completions.map(({ challenge }) => (
-              <ChallengeCard
-                key={challenge.id}
-                challenge={challenge}
-                isSaved={myListIds.has(challenge.id)}
-                upvotes={voteDataMap[challenge.id]?.upvotes ?? 0}
-                downvotes={voteDataMap[challenge.id]?.downvotes ?? 0}
-                userVote={(userVoteMap[challenge.id] as 1 | -1) ?? null}
-                hasNote={noteIds.has(challenge.id)}
-                saveCount={saveCountMap[challenge.id] ?? 0}
-                submitterDisplayName={challenge.submitted_by ? submitterNames[challenge.submitted_by] : undefined}
-                isLoggedIn={isLoggedIn}
-              />
-            ))}
-          </div>
-        ) : (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground">
-                {isOwnProfile
-                  ? "You haven't completed any challenges yet."
-                  : "This user hasn't completed any challenges yet."}
-              </p>
-            </CardContent>
-          </Card>
-        )}
-      </section>
+      {isOwnProfile ? (
+        <>
+          {inProgress.length > 0 && (
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold mb-4">
+                In Progress ({inProgress.length})
+              </h2>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {inProgress.map(({ challenge }) => (
+                  <ChallengeCard
+                    key={challenge.id}
+                    challenge={challenge}
+                    isSaved={myListIds.has(challenge.id)}
+                    upvotes={voteDataMap[challenge.id]?.upvotes ?? 0}
+                    downvotes={voteDataMap[challenge.id]?.downvotes ?? 0}
+                    userVote={(userVoteMap[challenge.id] as 1 | -1) ?? null}
+                    hasNote={noteIds.has(challenge.id)}
+                    saveCount={saveCountMap[challenge.id] ?? 0}
+                    submitterDisplayName={challenge.submitted_by ? submitterNames[challenge.submitted_by] : undefined}
+                    isLoggedIn={isLoggedIn}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {planned.length > 0 && (
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold mb-4">
+                Planned ({planned.length})
+              </h2>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {planned.map(({ challenge }) => (
+                  <ChallengeCard
+                    key={challenge.id}
+                    challenge={challenge}
+                    isSaved={myListIds.has(challenge.id)}
+                    upvotes={voteDataMap[challenge.id]?.upvotes ?? 0}
+                    downvotes={voteDataMap[challenge.id]?.downvotes ?? 0}
+                    userVote={(userVoteMap[challenge.id] as 1 | -1) ?? null}
+                    hasNote={noteIds.has(challenge.id)}
+                    saveCount={saveCountMap[challenge.id] ?? 0}
+                    submitterDisplayName={challenge.submitted_by ? submitterNames[challenge.submitted_by] : undefined}
+                    isLoggedIn={isLoggedIn}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          <section>
+            <h2 className="text-xl font-semibold mb-4">
+              Completed{completed.length > 0 ? ` (${completed.length})` : ""}
+            </h2>
+            {completed.length > 0 ? (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {completed.map(({ challenge }) => (
+                  <ChallengeCard
+                    key={challenge.id}
+                    challenge={challenge}
+                    isSaved={myListIds.has(challenge.id)}
+                    upvotes={voteDataMap[challenge.id]?.upvotes ?? 0}
+                    downvotes={voteDataMap[challenge.id]?.downvotes ?? 0}
+                    userVote={(userVoteMap[challenge.id] as 1 | -1) ?? null}
+                    hasNote={noteIds.has(challenge.id)}
+                    saveCount={saveCountMap[challenge.id] ?? 0}
+                    submitterDisplayName={challenge.submitted_by ? submitterNames[challenge.submitted_by] : undefined}
+                    isLoggedIn={isLoggedIn}
+                  />
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <p className="text-muted-foreground">
+                    You haven&apos;t completed any challenges yet.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </section>
+        </>
+      ) : (
+        <section>
+          <h2 className="text-xl font-semibold mb-4">
+            Recent Completions{completed.length > 0 ? ` (${completed.length})` : ""}
+          </h2>
+          {completed.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {completed.map(({ challenge }) => (
+                <ChallengeCard
+                  key={challenge.id}
+                  challenge={challenge}
+                  isSaved={myListIds.has(challenge.id)}
+                  upvotes={voteDataMap[challenge.id]?.upvotes ?? 0}
+                  downvotes={voteDataMap[challenge.id]?.downvotes ?? 0}
+                  userVote={(userVoteMap[challenge.id] as 1 | -1) ?? null}
+                  hasNote={noteIds.has(challenge.id)}
+                  saveCount={saveCountMap[challenge.id] ?? 0}
+                  submitterDisplayName={challenge.submitted_by ? submitterNames[challenge.submitted_by] : undefined}
+                  isLoggedIn={isLoggedIn}
+                />
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <p className="text-muted-foreground">
+                  This user hasn&apos;t completed any challenges yet.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </section>
+      )}
     </div>
   );
 }

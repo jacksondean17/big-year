@@ -67,17 +67,22 @@ export async function getCompletionCountForChallenge(
   return data?.completion_count ?? 0;
 }
 
-export async function getRecentCompletionsForUser(
+export async function getCompletionsForUser(
   userId: string,
-  limit = 6
+  { completedOnly = true, limit = 6 }: { completedOnly?: boolean; limit?: number } = {}
 ): Promise<(Completion & { challenge: Challenge })[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("challenge_completions")
     .select("*, challenges(*)")
-    .eq("user_id", userId)
-    .eq("status", "completed")
-    .order("completed_at", { ascending: false })
+    .eq("user_id", userId);
+
+  if (completedOnly) {
+    query = query.eq("status", "completed");
+  }
+
+  const { data, error } = await query
+    .order("updated_at", { ascending: false })
     .limit(limit);
 
   if (error) {
