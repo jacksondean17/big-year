@@ -93,7 +93,7 @@ async function generateCompletionMessage(
   try {
     const client = new Anthropic({ apiKey });
     const response = await client.messages.create({
-      model: "claude-sonnet-latest",
+      model: "claude-sonnet-4-6",
       max_tokens: 150,
       messages: [
         {
