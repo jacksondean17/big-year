@@ -34,18 +34,10 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const normalizeDifficulty = (d: string): string => {
-  const lower = d.toLowerCase();
-  if (lower.includes("easy")) return "Easy";
-  if (lower.includes("hard")) return "Hard";
-  return "Medium";
-};
-
 interface ChallengeRow {
   title: string;
   description: string;
   estimated_time: string;
-  difficulty: string;
   completion_criteria: string;
   category: string;
 }
@@ -70,7 +62,6 @@ async function syncChallenges() {
       title: r["Title"],
       description: r["Description"] ?? "",
       estimated_time: r["Estimated Time"] ?? "",
-      difficulty: normalizeDifficulty(r["Difficulty"] ?? ""),
       completion_criteria: r["Completion Criteria"] ?? "",
       category: r["Category"] ?? "",
     }));

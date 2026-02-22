@@ -28,5 +28,7 @@ Run through each step and report results before proceeding to the next.
 - Note: `SUPABASE_SECRET_KEY` is only needed for seeding and should NOT be in production.
 
 ### 5. Deploy
-- Deploys are triggered automatically by pushing to `main`. The push in step 1 will have already kicked off a Vercel deployment.
+- **Production:** Deploys are triggered automatically by pushing to `main`. The push in step 1 will have already kicked off a Vercel deployment.
+- **Preview:** Pushing any feature branch to origin will create a Vercel preview deployment. Use this to test before merging to `main`.
+- **Staging:** When batching multiple features, push to the `staging` branch. This also gets a Vercel preview deployment.
 - Remind the user to check the Vercel dashboard for deployment status.

@@ -2,11 +2,9 @@
 
 import { useState, useMemo } from "react";
 import { Challenge } from "@/lib/types";
-import type { SortOption, VoteData, ChallengeSaver } from "@/lib/types";
+import type { SortOption, SortDirection, VoteData, ChallengeSaver } from "@/lib/types";
 import { ChallengeCard } from "./challenge-card";
 import { ChallengeFilters } from "./challenge-filters";
-
-const DIFFICULTIES = ["Easy", "Medium", "Hard"];
 
 function getControversy(v: VoteData): number {
   const total = v.upvotes + v.downvotes;
@@ -22,7 +20,9 @@ export function ChallengeList({
   userVotes,
   userNoteIds,
   saveCounts,
+  completionCounts,
   saversMap,
+  submitterNames,
   isLoggedIn = false,
 }: {
   challenges: Challenge[];
@@ -31,15 +31,15 @@ export function ChallengeList({
   userVotes: Record<number, number>;
   userNoteIds?: number[];
   saveCounts?: Record<number, number>;
+  completionCounts?: Record<number, number>;
   saversMap?: Record<number, ChallengeSaver[]>;
+  submitterNames?: Record<string, string>;
   isLoggedIn?: boolean;
 }) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(
-    null
-  );
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSort, setSelectedSort] = useState<SortOption>("default");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   const categories = useMemo(() => {
     const cats = [...new Set(challenges.map((c) => c.category))];
@@ -49,8 +49,6 @@ export function ChallengeList({
   const filtered = useMemo(() => {
     let result = challenges.filter((c) => {
       if (selectedCategory && c.category !== selectedCategory) return false;
-      if (selectedDifficulty && c.difficulty !== selectedDifficulty)
-        return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         return (
@@ -61,25 +59,33 @@ export function ChallengeList({
       return true;
     });
 
+    const dir = sortDirection === "desc" ? 1 : -1;
+
     if (selectedSort === "popular") {
       result = [...result].sort((a, b) => {
         const aData = voteData[a.id] ?? { upvotes: 0, downvotes: 0 };
         const bData = voteData[b.id] ?? { upvotes: 0, downvotes: 0 };
         const aScore = aData.upvotes - aData.downvotes;
         const bScore = bData.upvotes - bData.downvotes;
-        return bScore - aScore;
+        return (bScore - aScore) * dir;
       });
     } else if (selectedSort === "controversial") {
       result = [...result].sort((a, b) => {
         const aData = voteData[a.id] ?? { upvotes: 0, downvotes: 0 };
         const bData = voteData[b.id] ?? { upvotes: 0, downvotes: 0 };
-        return getControversy(bData) - getControversy(aData);
+        return (getControversy(bData) - getControversy(aData)) * dir;
       });
     } else if (selectedSort === "points") {
       result = [...result].sort((a, b) => {
         const aPoints = a.points ?? 0;
         const bPoints = b.points ?? 0;
-        return bPoints - aPoints;
+        return (bPoints - aPoints) * dir;
+      });
+    } else if (selectedSort === "completions") {
+      result = [...result].sort((a, b) => {
+        const aCount = completionCounts?.[a.id] ?? 0;
+        const bCount = completionCounts?.[b.id] ?? 0;
+        return (bCount - aCount) * dir;
       });
     }
 
@@ -87,25 +93,30 @@ export function ChallengeList({
   }, [
     challenges,
     selectedCategory,
-    selectedDifficulty,
     searchQuery,
     selectedSort,
+    sortDirection,
     voteData,
+    completionCounts,
   ]);
 
   return (
     <div className="space-y-6">
       <ChallengeFilters
         categories={categories}
-        difficulties={DIFFICULTIES}
         selectedCategory={selectedCategory}
-        selectedDifficulty={selectedDifficulty}
         searchQuery={searchQuery}
         selectedSort={selectedSort}
+        sortDirection={sortDirection}
         onCategoryChange={setSelectedCategory}
-        onDifficultyChange={setSelectedDifficulty}
         onSearchChange={setSearchQuery}
-        onSortChange={setSelectedSort}
+        onSortChange={(sort) => {
+          setSelectedSort(sort);
+          setSortDirection("desc");
+        }}
+        onSortDirectionToggle={() =>
+          setSortDirection((d) => (d === "desc" ? "asc" : "desc"))
+        }
       />
 
       <p className="text-sm text-muted-foreground">
@@ -125,6 +136,8 @@ export function ChallengeList({
               userVote={(userVotes[challenge.id] as 1 | -1) ?? null}
               hasNote={userNoteIds?.includes(challenge.id)}
               saveCount={saveCounts?.[challenge.id] ?? 0}
+              completionCount={completionCounts?.[challenge.id] ?? 0}
+              submitterDisplayName={challenge.submitted_by ? submitterNames?.[challenge.submitted_by] : undefined}
               isLoggedIn={isLoggedIn}
             />
           );

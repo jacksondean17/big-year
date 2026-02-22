@@ -16,22 +16,29 @@ A personal challenge tracker web app for "The Big Year" - a collection of meanin
 
 ## Database Schema
 
-Four main tables with Row Level Security:
+Eight main tables with Row Level Security:
 
 | Table | Purpose |
 |-------|---------|
-| `challenges` | The ~100 challenge definitions (title, description, difficulty, category, etc.) |
+| `challenges` | The ~100 challenge definitions (title, description, category, scoring dimensions, etc.) |
 | `user_challenges` | Junction table: which users saved which challenges |
 | `challenge_votes` | Upvote/downvote per user per challenge (vote_type: 1 or -1) |
 | `challenge_notes` | User notes on challenges |
 | `profiles` | User display info (display_name, avatar_url, guild_nickname) |
+| `challenge_completions` | Tracks user completion status (planned/in_progress/completed) per challenge |
+| `completion_media` | Proof uploads (images/videos) linked to completions, stored in R2 |
+| `challenge_comments` | User comments on challenges (flat, public) |
+| `challenge_comment_votes` | Upvote/downvote per user per comment (vote_type: 1 or -1) |
 
 **Key Views:**
 - `challenge_vote_counts` - Aggregated scores per challenge
 - `challenge_save_counts` - How many users saved each challenge
+- `challenge_completion_counts` - How many users completed each challenge
+- `challenge_comment_vote_counts` - Aggregated scores per comment
 
 **Triggers:**
 - `on_auth_user_created` -> auto-creates profile from Discord user metadata
+- `trg_compute_challenge_points` -> auto-computes `points` from scoring dimensions (depth, courage, story_power, commitment) using formula: `round(((max + avg) / 2) ^ 1.6)`
 
 ## Key Files
 
@@ -44,12 +51,16 @@ src/
 │   ├── users/page.tsx        # All users list
 │   ├── users/[id]/page.tsx   # User profile page
 │   ├── challenges/[id]/      # Challenge detail
+│   ├── api/upload/route.ts    # Media upload/delete API (R2)
 │   ├── auth/callback/route.ts # OAuth callback + Discord sync
-│   └── actions/              # Server actions (discord.ts, savers.ts)
+│   └── actions/              # Server actions (auth.ts, discord.ts, savers.ts, completions.ts)
 ├── components/
 │   ├── challenge-*.tsx       # Challenge list, card, filters, notes
 │   ├── vote-button.tsx       # Upvote/downvote
 │   ├── my-list-button.tsx    # Save/unsave
+│   ├── completion-button.tsx # Mark progress (planned/in-progress/completed)
+│   ├── completion-dialog.tsx # Completion form with status, note, media upload
+│   ├── completers-list.tsx   # Who completed a challenge
 │   ├── auth-button.tsx       # Login/logout
 │   ├── calendar-subscribe-buttons.tsx  # Google/iCal/Outlook subscribe buttons
 │   └── user-*.tsx            # User list and cards
@@ -59,17 +70,22 @@ src/
 │   ├── votes.ts              # Vote operations
 │   ├── my-list.ts            # Save/unsave operations
 │   ├── notes.ts              # Note operations
+│   ├── completions.ts        # Completion queries
+│   ├── media.ts              # Completion media queries
+│   ├── r2.ts                 # Cloudflare R2 client (S3-compatible)
 │   ├── users.ts              # User queries
 │   ├── savers.ts             # Who saved what
 │   ├── discord.ts            # Discord API (get guild nickname)
 │   └── types.ts              # TypeScript interfaces
 supabase/
-├── migrations/               # 5 SQL migrations (schema evolution)
+├── migrations/               # 11 SQL migrations (schema evolution)
 └── config.toml               # Supabase local config
 data/
 └── *.csv                     # Challenge seed data
 scripts/
-└── seed-challenges.ts        # Seed script (npm run seed)
+├── seed-challenges.ts        # Seed script (npm run seed)
+├── sync-challenges.ts        # Sync challenges from CSV (npm run sync:challenges)
+└── import-scoring.ts         # Import scoring dimensions from CSV (npm run import:scoring)
 ```
 
 ## Running Locally
@@ -88,11 +104,13 @@ See `.env.local.example`:
 - `SUPABASE_SECRET_KEY` (for seed script)
 - `DISCORD_BOT_TOKEN` / `DISCORD_GUILD_ID` (for guild nickname sync)
 - `NEXT_PUBLIC_GOOGLE_CALENDAR_ID` (for embedded schedule calendar)
+- `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET_NAME` / `R2_PUBLIC_URL` (for completion proof uploads)
 
 ## Git Workflow
 
-- **Unless told otherwise**, always create a feature branch before making changes (e.g., `feature/description-of-change`).
-- Push changes to the `staging` branch (not `main` directly).
+- **Default (solo work):** Work directly on `main`. Push to `main` to deploy to production via Vercel. For anything non-trivial, create a short-lived feature branch, use the Vercel preview deployment to test, then merge to `main`.
+- **Coordinated / multi-feature launches:** Use the `staging` branch to batch multiple features before merging to `main`. Push feature branches to `staging` when work needs to be tested together before going live.
+- **Feature branches:** Use `feature/description-of-change` naming. Keep them short-lived.
 
 ## Patterns to Note
 
@@ -110,9 +128,13 @@ interface Challenge {
   title: string;
   description: string;
   estimated_time: string;
-  difficulty: "Easy" | "Medium" | "Hard";
   completion_criteria: string;
   category: string;  // Achievement, Social, Physical, etc.
+  points: number | null;  // Auto-computed by DB trigger from scoring dimensions
+  depth: number | null;       // 1-10
+  courage: number | null;     // 1-10
+  story_power: number | null; // 1-10
+  commitment: number | null;  // 1-10
 }
 ```
 

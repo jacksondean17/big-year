@@ -61,34 +61,42 @@ export default async function EditChallengePage({
               />
             </div>
 
+            <div className="space-y-1.5">
+              <label htmlFor="category" className="text-sm font-medium">
+                Category
+              </label>
+              <Input
+                id="category"
+                name="category"
+                defaultValue={challenge.category}
+                required
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label htmlFor="difficulty" className="text-sm font-medium">
-                  Difficulty
+                <label htmlFor="depth" className="text-sm font-medium">
+                  Depth <span className="text-muted-foreground">(1-10)</span>
                 </label>
-                <select
-                  id="difficulty"
-                  name="difficulty"
-                  defaultValue={challenge.difficulty}
-                  required
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="Easy">Easy</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Hard">Hard</option>
-                </select>
+                <Input id="depth" name="depth" type="number" min="1" max="10" defaultValue={challenge.depth ?? ""} />
               </div>
-
               <div className="space-y-1.5">
-                <label htmlFor="category" className="text-sm font-medium">
-                  Category
+                <label htmlFor="courage" className="text-sm font-medium">
+                  Courage <span className="text-muted-foreground">(1-10)</span>
                 </label>
-                <Input
-                  id="category"
-                  name="category"
-                  defaultValue={challenge.category}
-                  required
-                />
+                <Input id="courage" name="courage" type="number" min="1" max="10" defaultValue={challenge.courage ?? ""} />
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="story_power" className="text-sm font-medium">
+                  Story Power <span className="text-muted-foreground">(1-10)</span>
+                </label>
+                <Input id="story_power" name="story_power" type="number" min="1" max="10" defaultValue={challenge.story_power ?? ""} />
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="commitment" className="text-sm font-medium">
+                  Commitment <span className="text-muted-foreground">(1-10)</span>
+                </label>
+                <Input id="commitment" name="commitment" type="number" min="1" max="10" defaultValue={challenge.commitment ?? ""} />
               </div>
             </div>
 
@@ -117,20 +125,6 @@ export default async function EditChallengePage({
                 defaultValue={challenge.completion_criteria}
                 rows={3}
                 required
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label htmlFor="points" className="text-sm font-medium">
-                Points{" "}
-                <span className="text-muted-foreground">(optional)</span>
-              </label>
-              <Input
-                id="points"
-                name="points"
-                type="number"
-                min="0"
-                defaultValue={challenge.points ?? ""}
               />
             </div>
 

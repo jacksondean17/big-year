@@ -27,15 +27,22 @@ const securityHeaders = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' cdn.discordapp.com api.dicebear.com data: blob:",
+      `img-src 'self' cdn.discordapp.com api.dicebear.com ${process.env.R2_PUBLIC_URL ?? ""} data: blob:`,
       "frame-src calendar.google.com",
-      `connect-src 'self' *.supabase.co ${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""}`,
+      `media-src 'self' ${process.env.R2_PUBLIC_URL ?? ""} blob:`,
+      `connect-src 'self' *.supabase.co ${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""} ${process.env.R2_PUBLIC_URL ?? ""}`,
       "font-src 'self'",
     ].join("; "),
   },
 ];
 
 const nextConfig: NextConfig = {
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "100mb",
+    },
+    proxyClientMaxBodySize: "100mb",
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "cdn.discordapp.com" },
