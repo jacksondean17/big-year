@@ -48,7 +48,7 @@ export async function markChallengeComplete(
             .single(),
           supabase
             .from("profiles")
-            .select("discord_id")
+            .select("discord_id, guild_nickname, display_name")
             .eq("id", user.id)
             .single(),
         ]);
@@ -60,6 +60,7 @@ export async function markChallengeComplete(
           console.log("[Discord] Calling sendCompletionMessage...");
           await sendCompletionMessage({
             discordUserId: profile.discord_id,
+            displayName: profile.guild_nickname ?? profile.display_name ?? "Someone",
             challengeTitle: challenge.title,
             challengeId,
             points: challenge.points,
