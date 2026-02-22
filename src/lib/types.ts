@@ -20,7 +20,8 @@ export interface VoteData {
   downvotes: number;
 }
 
-export type SortOption = "default" | "popular" | "controversial" | "points";
+export type SortOption = "default" | "popular" | "controversial" | "points" | "completions";
+export type SortDirection = "desc" | "asc";
 
 export interface UserProfile {
   id: string;

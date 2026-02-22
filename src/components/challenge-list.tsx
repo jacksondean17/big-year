@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Challenge } from "@/lib/types";
-import type { SortOption, VoteData, ChallengeSaver } from "@/lib/types";
+import type { SortOption, SortDirection, VoteData, ChallengeSaver } from "@/lib/types";
 import { ChallengeCard } from "./challenge-card";
 import { ChallengeFilters } from "./challenge-filters";
 
@@ -39,6 +39,7 @@ export function ChallengeList({
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSort, setSelectedSort] = useState<SortOption>("default");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   const categories = useMemo(() => {
     const cats = [...new Set(challenges.map((c) => c.category))];
@@ -58,25 +59,33 @@ export function ChallengeList({
       return true;
     });
 
+    const dir = sortDirection === "desc" ? 1 : -1;
+
     if (selectedSort === "popular") {
       result = [...result].sort((a, b) => {
         const aData = voteData[a.id] ?? { upvotes: 0, downvotes: 0 };
         const bData = voteData[b.id] ?? { upvotes: 0, downvotes: 0 };
         const aScore = aData.upvotes - aData.downvotes;
         const bScore = bData.upvotes - bData.downvotes;
-        return bScore - aScore;
+        return (bScore - aScore) * dir;
       });
     } else if (selectedSort === "controversial") {
       result = [...result].sort((a, b) => {
         const aData = voteData[a.id] ?? { upvotes: 0, downvotes: 0 };
         const bData = voteData[b.id] ?? { upvotes: 0, downvotes: 0 };
-        return getControversy(bData) - getControversy(aData);
+        return (getControversy(bData) - getControversy(aData)) * dir;
       });
     } else if (selectedSort === "points") {
       result = [...result].sort((a, b) => {
         const aPoints = a.points ?? 0;
         const bPoints = b.points ?? 0;
-        return bPoints - aPoints;
+        return (bPoints - aPoints) * dir;
+      });
+    } else if (selectedSort === "completions") {
+      result = [...result].sort((a, b) => {
+        const aCount = completionCounts?.[a.id] ?? 0;
+        const bCount = completionCounts?.[b.id] ?? 0;
+        return (bCount - aCount) * dir;
       });
     }
 
@@ -86,7 +95,9 @@ export function ChallengeList({
     selectedCategory,
     searchQuery,
     selectedSort,
+    sortDirection,
     voteData,
+    completionCounts,
   ]);
 
   return (
@@ -96,9 +107,16 @@ export function ChallengeList({
         selectedCategory={selectedCategory}
         searchQuery={searchQuery}
         selectedSort={selectedSort}
+        sortDirection={sortDirection}
         onCategoryChange={setSelectedCategory}
         onSearchChange={setSearchQuery}
-        onSortChange={setSelectedSort}
+        onSortChange={(sort) => {
+          setSelectedSort(sort);
+          setSortDirection("desc");
+        }}
+        onSortDirectionToggle={() =>
+          setSortDirection((d) => (d === "desc" ? "asc" : "desc"))
+        }
       />
 
       <p className="text-sm text-muted-foreground">
