@@ -95,6 +95,7 @@ async function generateCompletionMessage(
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 150,
+      temperature: 0.9,
       messages: [
         {
           role: "user",
@@ -102,7 +103,7 @@ async function generateCompletionMessage(
 
 1. A single short sentence stating what they did, in a straightforward, excited, conversational way. Start the sentence with exactly "${discordPing}" (this is a Discord ping, keep it exactly as-is). State what they accomplished based on the challenge name. Don't be cute or use puns. Don't use quotes or quotation marks.
 
-2. After the sentence, on a new line, a single creative exclamation word or phrase. Be EXTREMELY creative and varied — pull from memes, pop culture quotes, obscure words, slang, movie lines, etc. Examples: "Now THIS is pod racing!", "Main character energy.", "Straight fire.", "Huzzah!", "Built different.", "Certified legend.", "What a time to be alive." If there's an obvious connection between the exclamation and the challenge, go for it — but don't force it. Most of the time a random creative phrase is better than a bad connection. NEVER use generic or boring phrases like "Good job!", "Let's go!", "Amazing!", "Incredible!", "Well done!", "Awesome!", "Congrats!", "Nailed it!", "Crushed it!" — always pick something unexpected and distinctive.
+2. After the sentence, on a new line, a single creative exclamation word or phrase. Be EXTREMELY creative and varied — pull from memes, pop culture quotes, obscure words, slang, movie lines, etc. End the exclamation with an exclamation mark when it fits the energy. Examples: "Now THIS is pod racing!", "Main character energy!", "Straight fire!", "Huzzah!", "Built different.", "Certified legend.", "What a time to be alive!" If there's an obvious connection between the exclamation and the challenge, go for it — but don't force it. Most of the time a random creative phrase is better than a bad connection. NEVER use generic or boring phrases like "Good job!", "Let's go!", "Amazing!", "Incredible!", "Well done!", "Awesome!", "Congrats!", "Nailed it!", "Crushed it!" — always pick something unexpected and distinctive.
 
 The challenge name is: "${challengeTitle}"
 
