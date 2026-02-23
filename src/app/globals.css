@@ -121,6 +121,9 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    overflow-x: hidden;
+  }
   body {
     @apply bg-background text-foreground;
     position: relative;
@@ -503,6 +506,85 @@
   [data-slot="badge"][data-variant="outline"] {
     border-color: rgba(42, 157, 143, 0.35);
     background: rgba(255, 250, 242, 0.8);
+  }
+
+  /* Brainrot Mode - neon color overrides */
+  .brainrot {
+    --background: #0a0a0a;
+    --foreground: #e0ffe0;
+    --card: #111111;
+    --card-foreground: #e0ffe0;
+    --popover: #111111;
+    --popover-foreground: #e0ffe0;
+    --primary: #00ff88;
+    --primary-foreground: #000000;
+    --secondary: #ff00ff;
+    --secondary-foreground: #000000;
+    --muted: #1a1a2e;
+    --muted-foreground: #00ffff;
+    --accent: #ff6600;
+    --accent-foreground: #000000;
+    --destructive: #ff0044;
+    --border: #00ff8855;
+    --input: #00ff8833;
+    --ring: #00ffff;
+  }
+
+  .brainrot body {
+    background: #0a0a0a !important;
+    background-image: none !important;
+  }
+
+  .brainrot .filigree-layer {
+    display: none;
+  }
+
+  .brainrot .site-header {
+    background: rgba(10, 10, 10, 0.9) !important;
+    border-color: #00ff8855;
+  }
+
+  .brainrot [data-slot="card"] {
+    background: #111111 !important;
+    background-image: none !important;
+    border-color: #00ff88;
+    box-shadow: 0 0 15px rgba(0, 255, 136, 0.3), 0 0 30px rgba(255, 0, 255, 0.15);
+  }
+
+  .brainrot [data-slot="card"]::before,
+  .brainrot [data-slot="card"]::after {
+    border-color: #ff00ff44;
+  }
+
+  .brainrot [data-slot="button"][data-variant="default"] {
+    background: #00ff88 !important;
+    background-image: none !important;
+    color: #000;
+    border-color: #00ff88;
+    box-shadow: 0 0 12px rgba(0, 255, 136, 0.5);
+  }
+
+  .brainrot [data-slot="button"][data-variant="outline"] {
+    background: rgba(0, 255, 136, 0.1) !important;
+    border-color: #00ff88;
+    color: #00ff88;
+  }
+
+  .brainrot [data-slot="input"] {
+    background: rgba(0, 255, 136, 0.05) !important;
+    background-image: none !important;
+    border-color: #00ff8855;
+    color: #e0ffe0;
+  }
+
+  @keyframes brainrot-pulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.05); }
+  }
+
+  @keyframes brainrot-loading {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
   }
 
   @media (prefers-reduced-motion: reduce) {
