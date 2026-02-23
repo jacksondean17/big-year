@@ -296,6 +296,9 @@ export async function sendCompletionMessage(params: {
   points: number | null;
   category: string;
   note?: string | null;
+  externalUrl?: string | null;
+  imageUrl?: string | null;
+  videoUrl?: string | null;
 }) {
   const botToken = process.env.DISCORD_BOT_TOKEN;
   const channelId = process.env.DISCORD_COMPLETIONS_CHANNEL_ID;
@@ -350,11 +353,21 @@ export async function sendCompletionMessage(params: {
         ? [{ name: "Points", value: String(params.points), inline: true }]
         : []),
       { name: "Category", value: params.category, inline: true },
+      ...(params.externalUrl
+        ? [{ name: "Link", value: params.externalUrl }]
+        : []),
+      ...(params.videoUrl
+        ? [{ name: "Video", value: `[See the video here](${params.videoUrl})` }]
+        : []),
     ],
   };
 
   if (params.note) {
     embed.description = params.note;
+  }
+
+  if (params.imageUrl) {
+    embed.image = { url: params.imageUrl };
   }
 
   const fullContent = [

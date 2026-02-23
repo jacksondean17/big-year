@@ -54,13 +54,32 @@ export async function sendCompletionPing(
     return { success: false, error: "Challenge not found" };
   }
 
-  // Fetch the completion note if any
+  // Fetch the completion details and first image
   const { data: completion } = await supabase
     .from("challenge_completions")
-    .select("completion_note")
+    .select("id, completion_note, external_url")
     .eq("user_id", userId)
     .eq("challenge_id", challengeId)
     .single();
+
+  let imageUrl: string | null = null;
+  let videoUrl: string | null = null;
+  if (completion?.id) {
+    const { data: media } = await supabase
+      .from("completion_media")
+      .select("public_url, file_type")
+      .eq("completion_id", completion.id)
+      .order("uploaded_at", { ascending: true });
+
+    const firstImage = media?.find((m: { file_type: string }) =>
+      m.file_type.startsWith("image/")
+    );
+    const firstVideo = media?.find((m: { file_type: string }) =>
+      m.file_type.startsWith("video/")
+    );
+    imageUrl = firstImage?.public_url ?? null;
+    videoUrl = firstVideo?.public_url ?? null;
+  }
 
   await sendCompletionMessage({
     userId,
@@ -71,6 +90,9 @@ export async function sendCompletionPing(
     points: challenge.points,
     category: challenge.category,
     note: completion?.completion_note,
+    externalUrl: completion?.external_url,
+    imageUrl,
+    videoUrl,
   });
 
   return { success: true };

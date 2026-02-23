@@ -35,49 +35,73 @@ export async function markChallengeComplete(
 
   if (error) throw error;
 
-  // Send Discord celebration message for completions (fire-and-forget)
-  console.log("[Discord] markChallengeComplete called with status:", status, "challengeId:", challengeId);
-  if (status === "completed") {
-    (async () => {
-      try {
-        const [{ data: challenge }, { data: profile }] = await Promise.all([
-          supabase
-            .from("challenges")
-            .select("title, points, category")
-            .eq("id", challengeId)
-            .single(),
-          supabase
-            .from("profiles")
-            .select("discord_id, guild_nickname, display_name")
-            .eq("id", user.id)
-            .single(),
-        ]);
-
-        console.log("[Discord] challenge:", challenge);
-        console.log("[Discord] profile discord_id:", profile?.discord_id);
-
-        if (challenge && profile?.discord_id) {
-          console.log("[Discord] Calling sendCompletionMessage...");
-          await sendCompletionMessage({
-            userId: user.id,
-            discordUserId: profile.discord_id,
-            displayName: profile.guild_nickname ?? profile.display_name ?? "Someone",
-            challengeTitle: challenge.title,
-            challengeId,
-            points: challenge.points,
-            category: challenge.category,
-            note,
-          });
-        } else {
-          console.log("[Discord] Skipped — missing challenge or discord_id");
-        }
-      } catch (err) {
-        console.error("[Discord] Failed to send completion message:", err);
-      }
-    })();
-  }
-
   return data as Completion;
+}
+
+/**
+ * Sends the Discord completion ping for the current user.
+ * Called after media uploads are done so the image can be included.
+ */
+export async function sendUserCompletionPing(
+  completionId: string,
+  challengeId: number
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  try {
+    const [{ data: challenge }, { data: profile }, { data: completion }, { data: media }] =
+      await Promise.all([
+        supabase
+          .from("challenges")
+          .select("title, points, category")
+          .eq("id", challengeId)
+          .single(),
+        supabase
+          .from("profiles")
+          .select("discord_id, guild_nickname, display_name")
+          .eq("id", user.id)
+          .single(),
+        supabase
+          .from("challenge_completions")
+          .select("completion_note, external_url")
+          .eq("id", completionId)
+          .single(),
+        supabase
+          .from("completion_media")
+          .select("public_url, file_type")
+          .eq("completion_id", completionId)
+          .order("uploaded_at", { ascending: true }),
+      ]);
+
+    if (!challenge || !profile?.discord_id) return;
+
+    const firstImage = media?.find((m: { file_type: string }) =>
+      m.file_type.startsWith("image/")
+    );
+    const firstVideo = media?.find((m: { file_type: string }) =>
+      m.file_type.startsWith("video/")
+    );
+
+    await sendCompletionMessage({
+      userId: user.id,
+      discordUserId: profile.discord_id,
+      displayName: profile.guild_nickname ?? profile.display_name ?? "Someone",
+      challengeTitle: challenge.title,
+      challengeId,
+      points: challenge.points,
+      category: challenge.category,
+      note: completion?.completion_note,
+      externalUrl: completion?.external_url,
+      imageUrl: firstImage?.public_url ?? null,
+      videoUrl: firstVideo?.public_url ?? null,
+    });
+  } catch (err) {
+    console.error("[Discord] Failed to send completion message:", err);
+  }
 }
 
 export async function removeChallengeCompletion(challengeId: number) {

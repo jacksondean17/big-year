@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import {
   markChallengeComplete,
   removeChallengeCompletion,
+  sendUserCompletionPing,
 } from "@/app/actions/completions";
 import type { Completion, CompletionMedia, CompletionStatus } from "@/lib/types";
 
@@ -152,6 +153,11 @@ export function CompletionDialog({
           URL.revokeObjectURL(pf.preview);
         }
         setPendingFiles([]);
+
+        // Send Discord ping after uploads are done (fire-and-forget)
+        if (saved.status === "completed") {
+          sendUserCompletionPing(saved.id, challengeId).catch(() => {});
+        }
 
         onUpdate(saved);
         onOpenChange(false);
