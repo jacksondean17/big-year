@@ -11,6 +11,7 @@ export interface Challenge {
   courage: number | null;
   story_power: number | null;
   commitment: number | null;
+  archived: boolean;
 }
 
 export type UserVoteType = 1 | -1 | null;

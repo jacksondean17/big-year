@@ -1,26 +1,30 @@
 import { createClient } from "./supabase/server";
 import { Challenge, UserProfile } from "./types";
 
-export async function getChallenges(): Promise<Challenge[]> {
+export async function getChallenges(
+  { includeArchived = false }: { includeArchived?: boolean } = {}
+): Promise<Challenge[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("challenges")
-    .select("*")
-    .order("id");
+  let query = supabase.from("challenges").select("*");
+  if (!includeArchived) {
+    query = query.eq("archived", false);
+  }
+  const { data, error } = await query.order("id");
 
   if (error) throw error;
   return data as Challenge[];
 }
 
 export async function getChallengeById(
-  id: number
+  id: number,
+  { includeArchived = false }: { includeArchived?: boolean } = {}
 ): Promise<Challenge | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("challenges")
-    .select("*")
-    .eq("id", id)
-    .single();
+  let query = supabase.from("challenges").select("*").eq("id", id);
+  if (!includeArchived) {
+    query = query.eq("archived", false);
+  }
+  const { data, error } = await query.single();
 
   if (error) return null;
   return data as Challenge;
@@ -81,6 +85,7 @@ export async function getCategories(): Promise<string[]> {
   const { data, error } = await supabase
     .from("challenges")
     .select("category")
+    .eq("archived", false)
     .order("category");
 
   if (error) throw error;

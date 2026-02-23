@@ -86,6 +86,32 @@ export async function getChallengeStats(id: number) {
   };
 }
 
+export async function archiveChallenge(id: number) {
+  await assertAdmin();
+  const supabase = getServiceClient();
+
+  const { error } = await supabase
+    .from("challenges")
+    .update({ archived: true })
+    .eq("id", id);
+
+  if (error) throw error;
+  redirect(`/admin/challenges/${id}/edit`);
+}
+
+export async function unarchiveChallenge(id: number) {
+  await assertAdmin();
+  const supabase = getServiceClient();
+
+  const { error } = await supabase
+    .from("challenges")
+    .update({ archived: false })
+    .eq("id", id);
+
+  if (error) throw error;
+  redirect(`/admin/challenges/${id}/edit`);
+}
+
 export async function deleteChallenge(id: number) {
   await assertAdmin();
   const supabase = getServiceClient();

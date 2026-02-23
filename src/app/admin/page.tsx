@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { getChallenges } from "@/lib/challenges";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export default async function AdminPage() {
-  const challenges = await getChallenges();
+  const challenges = await getChallenges({ includeArchived: true });
 
   return (
     <div>
@@ -41,7 +42,14 @@ export default async function AdminPage() {
                 <td className="px-4 py-3 text-muted-foreground">
                   {challenge.id}
                 </td>
-                <td className="px-4 py-3 font-medium">{challenge.title}</td>
+                <td className="px-4 py-3 font-medium">
+                  {challenge.title}
+                  {challenge.archived && (
+                    <Badge variant="outline" className="ml-2 text-amber-600 border-amber-400">
+                      Archived
+                    </Badge>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-muted-foreground">
                   {challenge.category}
                 </td>

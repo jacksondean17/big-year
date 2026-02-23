@@ -22,10 +22,11 @@ export default async function AdminCompletionsPage() {
       completed_at,
       completion_note,
       profiles(display_name, guild_nickname, discord_id),
-      challenges(title, points, category)
+      challenges!inner(title, points, category, archived)
     `
     )
     .eq("status", "completed")
+    .eq("challenges.archived", false)
     .order("completed_at", { ascending: false });
 
   return (

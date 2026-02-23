@@ -74,8 +74,9 @@ export async function getCompletionsForUser(
   const supabase = await createClient();
   let query = supabase
     .from("challenge_completions")
-    .select("*, challenges(*)")
-    .eq("user_id", userId);
+    .select("*, challenges!inner(*)")
+    .eq("user_id", userId)
+    .eq("challenges.archived", false);
 
   if (completedOnly) {
     query = query.eq("status", "completed");

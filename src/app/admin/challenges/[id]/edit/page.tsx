@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DeleteChallengeButton } from "@/components/delete-challenge-button";
+import { ArchiveChallengeButton } from "@/components/archive-challenge-button";
 
 export default async function EditChallengePage({
   params,
@@ -14,7 +15,7 @@ export default async function EditChallengePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const challenge = await getChallengeById(Number(id));
+  const challenge = await getChallengeById(Number(id), { includeArchived: true });
 
   if (!challenge) notFound();
 
@@ -30,6 +31,12 @@ export default async function EditChallengePage({
           ← Back to challenges
         </Link>
       </div>
+
+      {challenge.archived && (
+        <div className="max-w-2xl mb-6 rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-700 dark:text-amber-400">
+          This challenge is archived. It is hidden from public view but all data is preserved.
+        </div>
+      )}
 
       <Card className="max-w-2xl">
         <CardHeader>
@@ -144,17 +151,37 @@ export default async function EditChallengePage({
         <CardHeader>
           <CardTitle className="text-destructive">Danger Zone</CardTitle>
         </CardHeader>
-        <CardContent className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium">Delete this challenge</p>
-            <p className="text-sm text-muted-foreground">
-              Once deleted, there is no going back. All saves, completions, votes, notes, and comments will be removed.
-            </p>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">
+                {challenge.archived ? "Unarchive this challenge" : "Archive this challenge"}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {challenge.archived
+                  ? "Make this challenge visible again on the home page and user lists."
+                  : "Hide from public view. All data is preserved and leaderboard points still count."}
+              </p>
+            </div>
+            <ArchiveChallengeButton
+              challengeId={challenge.id}
+              challengeTitle={challenge.title}
+              isArchived={challenge.archived}
+            />
           </div>
-          <DeleteChallengeButton
-            challengeId={challenge.id}
-            challengeTitle={challenge.title}
-          />
+
+          <div className="border-t pt-6 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">Delete this challenge</p>
+              <p className="text-sm text-muted-foreground">
+                Once deleted, there is no going back. All saves, completions, votes, notes, and comments will be removed.
+              </p>
+            </div>
+            <DeleteChallengeButton
+              challengeId={challenge.id}
+              challengeTitle={challenge.title}
+            />
+          </div>
         </CardContent>
       </Card>
     </div>

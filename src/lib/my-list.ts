@@ -10,8 +10,9 @@ export async function getUserChallengeIds(): Promise<Set<number>> {
 
   const { data } = await supabase
     .from("user_challenges")
-    .select("challenge_id")
-    .eq("user_id", user.id);
+    .select("challenge_id, challenges!inner(archived)")
+    .eq("user_id", user.id)
+    .eq("challenges.archived", false);
 
   return new Set((data ?? []).map((r) => r.challenge_id));
 }
@@ -27,8 +28,9 @@ export async function getUserChallenges(): Promise<
 
   const { data, error } = await supabase
     .from("user_challenges")
-    .select("challenge_id, added_at, challenges(*)")
+    .select("challenge_id, added_at, challenges!inner(*)")
     .eq("user_id", user.id)
+    .eq("challenges.archived", false)
     .order("added_at", { ascending: false });
 
   if (error) throw error;

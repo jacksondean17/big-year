@@ -40,8 +40,9 @@ export async function getUserChallengesByUserId(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("user_challenges")
-    .select("challenge_id, added_at, challenges(*)")
+    .select("challenge_id, added_at, challenges!inner(*)")
     .eq("user_id", userId)
+    .eq("challenges.archived", false)
     .order("added_at", { ascending: false });
 
   if (error) throw error;
