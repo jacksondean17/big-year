@@ -13,6 +13,9 @@ export default async function AdminPage() {
         </p>
         <div className="flex gap-2">
           <Button asChild size="sm" variant="outline">
+            <Link href="/admin/users">Users</Link>
+          </Button>
+          <Button asChild size="sm" variant="outline">
             <Link href="/admin/completions">Completions</Link>
           </Button>
           <Button asChild size="sm">
