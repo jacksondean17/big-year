@@ -81,6 +81,12 @@ export function ChallengeList({
         const bPoints = b.points ?? 0;
         return (bPoints - aPoints) * dir;
       });
+    } else if (selectedSort === "saves") {
+      result = [...result].sort((a, b) => {
+        const aCount = saveCounts?.[a.id] ?? 0;
+        const bCount = saveCounts?.[b.id] ?? 0;
+        return (bCount - aCount) * dir;
+      });
     } else if (selectedSort === "completions") {
       result = [...result].sort((a, b) => {
         const aCount = completionCounts?.[a.id] ?? 0;
@@ -97,6 +103,7 @@ export function ChallengeList({
     selectedSort,
     sortDirection,
     voteData,
+    saveCounts,
     completionCounts,
   ]);
 
