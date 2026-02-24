@@ -51,9 +51,6 @@ export function RankingCard({ challenge, onPick, isSelected, isOtherSelected, di
           <span className="text-xs font-medium px-2 py-1 rounded-full bg-primary/10 text-primary">
             {challenge.category}
           </span>
-          {challenge.elo_score && (
-            <span className="text-xs text-muted-foreground">{challenge.elo_score} Elo</span>
-          )}
         </div>
 
         {/* Title */}
