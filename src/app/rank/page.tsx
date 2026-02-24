@@ -1,8 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { RankingInterface } from "@/components/ranking-interface";
 import { RankingGuidance } from "@/components/ranking-guidance";
 import { getUserComparisons } from "@/app/actions/comparisons";
+import { History } from "lucide-react";
 
 export const metadata = {
   title: "Rank Challenges | The Big Year",
@@ -35,10 +37,17 @@ export default async function RankPage() {
       <div className="max-w-4xl mx-auto">
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold mb-2">Rank Challenges</h1>
-          <div className="flex items-center justify-center gap-2">
+          <div className="flex items-center justify-center gap-2 mb-2">
             <p className="text-muted-foreground">Choose which challenge should be worth more points</p>
             <RankingGuidance />
           </div>
+          <Link
+            href="/rank/history"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <History className="w-4 h-4" />
+            View comparison history ({userComparisons.length})
+          </Link>
         </div>
 
         <RankingInterface challenges={challenges} userComparisons={userComparisons} userId={user.id} />
