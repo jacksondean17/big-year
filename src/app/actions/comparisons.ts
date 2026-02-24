@@ -15,8 +15,11 @@ export async function submitComparison(winnerId: number, loserId: number) {
     throw new Error("Must be logged in to compare challenges");
   }
 
-  // Get current Elo scores and comparison counts for adaptive K
-  const { data: challenges } = await supabase.from("challenges").select("id, elo_score").in("id", [winnerId, loserId]);
+  // Get current Elo scores, benchmark status, and comparison counts for adaptive K
+  const { data: challenges } = await supabase
+    .from("challenges")
+    .select("id, elo_score, is_benchmark, benchmark_elo")
+    .in("id", [winnerId, loserId]);
 
   const { data: comparisonCounts } = await supabase
     .from("challenge_comparison_counts")
@@ -34,6 +37,10 @@ export async function submitComparison(winnerId: number, loserId: number) {
     throw new Error("Challenge not found");
   }
 
+  // Use benchmark Elo if challenge is a benchmark, otherwise use current Elo
+  const winnerCurrentElo = winner.is_benchmark ? winner.benchmark_elo || 1500 : winner.elo_score || 1500;
+  const loserCurrentElo = loser.is_benchmark ? loser.benchmark_elo || 1500 : loser.elo_score || 1500;
+
   // Get comparison counts for adaptive K-factor
   const winnerCount = comparisonCounts?.find((c) => c.challenge_id === winnerId)?.comparison_count || 0;
   const loserCount = comparisonCounts?.find((c) => c.challenge_id === loserId)?.comparison_count || 0;
@@ -44,7 +51,7 @@ export async function submitComparison(winnerId: number, loserId: number) {
   const avgK = Math.round((winnerK + loserK) / 2);
 
   // Calculate new ratings with adaptive K
-  const [newWinnerScore, newLoserScore] = updateEloRatings(winner.elo_score || 1500, loser.elo_score || 1500, avgK);
+  const [newWinnerScore, newLoserScore] = updateEloRatings(winnerCurrentElo, loserCurrentElo, avgK);
 
   // Insert comparison record
   const { data: comparison, error: compError } = await supabase
@@ -61,18 +68,22 @@ export async function submitComparison(winnerId: number, loserId: number) {
     throw new Error(`Failed to save comparison: ${compError.message}`);
   }
 
-  // Update Elo scores
-  await supabase.from("challenges").update({ elo_score: newWinnerScore }).eq("id", winnerId);
+  // Update Elo scores (skip benchmarks - they keep their fixed scores)
+  if (!winner.is_benchmark) {
+    await supabase.from("challenges").update({ elo_score: newWinnerScore }).eq("id", winnerId);
+  }
 
-  await supabase.from("challenges").update({ elo_score: newLoserScore }).eq("id", loserId);
+  if (!loser.is_benchmark) {
+    await supabase.from("challenges").update({ elo_score: newLoserScore }).eq("id", loserId);
+  }
 
   revalidatePath("/rank");
 
   return {
     comparison,
     newScores: {
-      [winnerId]: newWinnerScore,
-      [loserId]: newLoserScore,
+      [winnerId]: winner.is_benchmark ? winnerCurrentElo : newWinnerScore,
+      [loserId]: loser.is_benchmark ? loserCurrentElo : newLoserScore,
     },
   };
 }
@@ -162,4 +173,57 @@ export async function recalculateAllElos() {
     comparisonsProcessed: comparisonCount || 0,
     durationMs: duration,
   };
+}
+
+/**
+ * Admin-only: Set a challenge as a benchmark with a fixed Elo score
+ */
+export async function setBenchmarkChallenge(challengeId: number, benchmarkElo: number) {
+  await requireAdmin();
+
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("challenges")
+    .update({
+      is_benchmark: true,
+      benchmark_elo: benchmarkElo,
+      elo_score: benchmarkElo, // Set current Elo to benchmark value
+    })
+    .eq("id", challengeId);
+
+  if (error) {
+    throw new Error(`Failed to set benchmark: ${error.message}`);
+  }
+
+  revalidatePath("/rank");
+  revalidatePath("/rank/leaderboard");
+
+  return { success: true };
+}
+
+/**
+ * Admin-only: Remove benchmark status from a challenge
+ */
+export async function removeBenchmarkChallenge(challengeId: number) {
+  await requireAdmin();
+
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("challenges")
+    .update({
+      is_benchmark: false,
+      benchmark_elo: null,
+    })
+    .eq("id", challengeId);
+
+  if (error) {
+    throw new Error(`Failed to remove benchmark: ${error.message}`);
+  }
+
+  revalidatePath("/rank");
+  revalidatePath("/rank/leaderboard");
+
+  return { success: true };
 }

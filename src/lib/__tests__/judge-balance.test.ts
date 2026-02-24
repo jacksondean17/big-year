@@ -129,18 +129,28 @@ describe("Judge Balance Enforcement", () => {
   });
 
   it("should allow custom maxChallengeShare threshold", () => {
-    // User has made 10 comparisons, with challenge 1 appearing 3 times (30%)
+    // User has made 20 comparisons, with challenge 1 appearing 6 times (30%)
     const comparisons: ChallengeComparison[] = [
       { id: "1", user_id: "user-1", winner_id: 1, loser_id: 2, created_at: new Date().toISOString() },
       { id: "2", user_id: "user-1", winner_id: 1, loser_id: 3, created_at: new Date().toISOString() },
       { id: "3", user_id: "user-1", winner_id: 1, loser_id: 4, created_at: new Date().toISOString() },
-      { id: "4", user_id: "user-1", winner_id: 2, loser_id: 3, created_at: new Date().toISOString() },
-      { id: "5", user_id: "user-1", winner_id: 2, loser_id: 4, created_at: new Date().toISOString() },
-      { id: "6", user_id: "user-1", winner_id: 3, loser_id: 4, created_at: new Date().toISOString() },
-      { id: "7", user_id: "user-1", winner_id: 5, loser_id: 6, created_at: new Date().toISOString() },
-      { id: "8", user_id: "user-1", winner_id: 5, loser_id: 7, created_at: new Date().toISOString() },
-      { id: "9", user_id: "user-1", winner_id: 6, loser_id: 7, created_at: new Date().toISOString() },
-      { id: "10", user_id: "user-1", winner_id: 8, loser_id: 9, created_at: new Date().toISOString() },
+      { id: "4", user_id: "user-1", winner_id: 1, loser_id: 5, created_at: new Date().toISOString() },
+      { id: "5", user_id: "user-1", winner_id: 1, loser_id: 6, created_at: new Date().toISOString() },
+      { id: "6", user_id: "user-1", winner_id: 1, loser_id: 7, created_at: new Date().toISOString() },
+      { id: "7", user_id: "user-1", winner_id: 2, loser_id: 3, created_at: new Date().toISOString() },
+      { id: "8", user_id: "user-1", winner_id: 2, loser_id: 4, created_at: new Date().toISOString() },
+      { id: "9", user_id: "user-1", winner_id: 3, loser_id: 4, created_at: new Date().toISOString() },
+      { id: "10", user_id: "user-1", winner_id: 5, loser_id: 6, created_at: new Date().toISOString() },
+      { id: "11", user_id: "user-1", winner_id: 5, loser_id: 7, created_at: new Date().toISOString() },
+      { id: "12", user_id: "user-1", winner_id: 6, loser_id: 7, created_at: new Date().toISOString() },
+      { id: "13", user_id: "user-1", winner_id: 6, loser_id: 8, created_at: new Date().toISOString() },
+      { id: "14", user_id: "user-1", winner_id: 7, loser_id: 8, created_at: new Date().toISOString() },
+      { id: "15", user_id: "user-1", winner_id: 7, loser_id: 9, created_at: new Date().toISOString() },
+      { id: "16", user_id: "user-1", winner_id: 8, loser_id: 9, created_at: new Date().toISOString() },
+      { id: "17", user_id: "user-1", winner_id: 8, loser_id: 10, created_at: new Date().toISOString() },
+      { id: "18", user_id: "user-1", winner_id: 9, loser_id: 10, created_at: new Date().toISOString() },
+      { id: "19", user_id: "user-1", winner_id: 2, loser_id: 5, created_at: new Date().toISOString() },
+      { id: "20", user_id: "user-1", winner_id: 3, loser_id: 6, created_at: new Date().toISOString() },
     ];
 
     // With 15% threshold, challenge 1 (30%) should be excluded

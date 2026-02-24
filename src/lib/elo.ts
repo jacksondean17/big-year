@@ -46,10 +46,26 @@ export function updateEloRatings(
 /**
  * Recalculate all Elo scores from comparison history with adaptive K-factors
  * Useful for batch recalculation or fixing data inconsistencies
+ * Benchmark challenges are reset to their benchmark_elo and never updated
  */
 export async function recalculateAllEloScores(supabase: SupabaseClient) {
-  // Reset all to 1500
-  await supabase.from("challenges").update({ elo_score: 1500 }).neq("id", 0);
+  // Reset non-benchmark challenges to 1500
+  await supabase.from("challenges").update({ elo_score: 1500 }).eq("is_benchmark", false);
+
+  // Reset benchmark challenges to their benchmark_elo
+  const { data: benchmarks } = await supabase
+    .from("challenges")
+    .select("id, benchmark_elo")
+    .eq("is_benchmark", true);
+
+  if (benchmarks) {
+    for (const benchmark of benchmarks) {
+      await supabase
+        .from("challenges")
+        .update({ elo_score: benchmark.benchmark_elo })
+        .eq("id", benchmark.id);
+    }
+  }
 
   // Replay all comparisons in chronological order
   const { data: comparisons } = await supabase
@@ -65,7 +81,7 @@ export async function recalculateAllEloScores(supabase: SupabaseClient) {
   for (const comp of comparisons) {
     const { data: challenges } = await supabase
       .from("challenges")
-      .select("id, elo_score")
+      .select("id, elo_score, is_benchmark, benchmark_elo")
       .in("id", [comp.winner_id, comp.loser_id]);
 
     if (!challenges || challenges.length !== 2) continue;
@@ -74,6 +90,10 @@ export async function recalculateAllEloScores(supabase: SupabaseClient) {
     const loser = challenges.find((c) => c.id === comp.loser_id);
 
     if (!winner || !loser) continue;
+
+    // Use benchmark Elo for benchmarks, regular Elo for others
+    const winnerCurrentElo = winner.is_benchmark ? winner.benchmark_elo || 1500 : winner.elo_score || 1500;
+    const loserCurrentElo = loser.is_benchmark ? loser.benchmark_elo || 1500 : loser.elo_score || 1500;
 
     // Get current comparison counts for adaptive K
     const winnerCount = comparisonCounts.get(comp.winner_id) || 0;
@@ -84,15 +104,16 @@ export async function recalculateAllEloScores(supabase: SupabaseClient) {
     const loserK = getAdaptiveKFactor(loserCount);
     const avgK = Math.round((winnerK + loserK) / 2);
 
-    const [newWinnerScore, newLoserScore] = updateEloRatings(
-      winner.elo_score || 1500,
-      loser.elo_score || 1500,
-      avgK
-    );
+    const [newWinnerScore, newLoserScore] = updateEloRatings(winnerCurrentElo, loserCurrentElo, avgK);
 
-    await supabase.from("challenges").update({ elo_score: newWinnerScore }).eq("id", comp.winner_id);
+    // Only update non-benchmark challenges
+    if (!winner.is_benchmark) {
+      await supabase.from("challenges").update({ elo_score: newWinnerScore }).eq("id", comp.winner_id);
+    }
 
-    await supabase.from("challenges").update({ elo_score: newLoserScore }).eq("id", comp.loser_id);
+    if (!loser.is_benchmark) {
+      await supabase.from("challenges").update({ elo_score: newLoserScore }).eq("id", comp.loser_id);
+    }
 
     // Increment comparison counts
     comparisonCounts.set(comp.winner_id, winnerCount + 1);

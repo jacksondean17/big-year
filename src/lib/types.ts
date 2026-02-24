@@ -12,6 +12,8 @@ export interface Challenge {
   story_power: number | null;
   commitment: number | null;
   elo_score: number | null;
+  is_benchmark: boolean | null;
+  benchmark_elo: number | null;
 }
 
 export type UserVoteType = 1 | -1 | null;

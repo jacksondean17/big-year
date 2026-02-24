@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import type { Challenge } from "@/lib/types";
+import { Pin } from "lucide-react";
+import { BenchmarkControls } from "./benchmark-controls";
 
 interface ChallengeWithStats extends Challenge {
   comparison_counts?: {
@@ -21,11 +23,12 @@ export function EloLeaderboard({ challenges }: Props) {
       {/* Header */}
       <div className="grid grid-cols-12 gap-4 px-4 py-2 text-sm font-semibold text-muted-foreground border-b">
         <div className="col-span-1">Rank</div>
-        <div className="col-span-5">Challenge</div>
+        <div className="col-span-4">Challenge</div>
         <div className="col-span-2 text-center">Elo Score</div>
         <div className="col-span-1 text-center">W</div>
         <div className="col-span-1 text-center">L</div>
         <div className="col-span-2 text-center">Total Comps</div>
+        <div className="col-span-1"></div>
       </div>
 
       {/* Challenges */}
@@ -36,10 +39,9 @@ export function EloLeaderboard({ challenges }: Props) {
           : 0;
 
         return (
-          <Link
+          <div
             key={challenge.id}
-            href={`/challenges/${challenge.id}`}
-            className="grid grid-cols-12 gap-4 px-4 py-3 hover:bg-muted/50 transition-colors border rounded-lg"
+            className="grid grid-cols-12 gap-4 px-4 py-3 border rounded-lg hover:bg-muted/30 transition-colors"
           >
             {/* Rank */}
             <div className="col-span-1 flex items-center font-bold text-lg">
@@ -47,8 +49,16 @@ export function EloLeaderboard({ challenges }: Props) {
             </div>
 
             {/* Challenge Info */}
-            <div className="col-span-5 flex flex-col justify-center">
-              <h3 className="font-semibold leading-tight mb-1">{challenge.title}</h3>
+            <Link
+              href={`/challenges/${challenge.id}`}
+              className="col-span-4 flex flex-col justify-center hover:text-primary transition-colors"
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-semibold leading-tight">{challenge.title}</h3>
+                {challenge.is_benchmark && (
+                  <Pin className="w-4 h-4 text-primary" title="Benchmark challenge (fixed Elo)" />
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
                   {challenge.category}
@@ -59,11 +69,14 @@ export function EloLeaderboard({ challenges }: Props) {
                   </span>
                 )}
               </div>
-            </div>
+            </Link>
 
             {/* Elo Score */}
             <div className="col-span-2 flex flex-col items-center justify-center">
               <span className="text-xl font-bold">{challenge.elo_score || 1500}</span>
+              {challenge.is_benchmark && (
+                <span className="text-xs text-muted-foreground">fixed</span>
+              )}
             </div>
 
             {/* Wins */}
@@ -89,8 +102,17 @@ export function EloLeaderboard({ challenges }: Props) {
                 </span>
               )}
             </div>
-          </Link>
+
+            {/* Benchmark Controls */}
+            <div className="col-span-1 flex items-center justify-center">
+              <BenchmarkControls challenge={challenge} />
+            </div>
+          </div>
         );
+      })}
+    </div>
+  );
+}
       })}
     </div>
   );
