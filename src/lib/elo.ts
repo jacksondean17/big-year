@@ -3,6 +3,18 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 const K_FACTOR = 32; // Standard for new/volatile ratings
 
 /**
+ * Calculate adaptive K-factor based on challenge comparison count
+ * - New challenges (< 10 comparisons): K = 40 (high volatility)
+ * - Developing challenges (10-29 comparisons): K = 32 (standard)
+ * - Established challenges (>= 30 comparisons): K = 24 (stable)
+ */
+export function getAdaptiveKFactor(comparisonCount: number): number {
+  if (comparisonCount < 10) return 40;
+  if (comparisonCount < 30) return 32;
+  return 24;
+}
+
+/**
  * Calculate expected win probability for A vs B
  * Returns value between 0 and 1
  */
@@ -32,7 +44,7 @@ export function updateEloRatings(
 }
 
 /**
- * Recalculate all Elo scores from comparison history
+ * Recalculate all Elo scores from comparison history with adaptive K-factors
  * Useful for batch recalculation or fixing data inconsistencies
  */
 export async function recalculateAllEloScores(supabase: SupabaseClient) {
@@ -47,6 +59,9 @@ export async function recalculateAllEloScores(supabase: SupabaseClient) {
 
   if (!comparisons) return;
 
+  // Track comparison count per challenge for adaptive K
+  const comparisonCounts = new Map<number, number>();
+
   for (const comp of comparisons) {
     const { data: challenges } = await supabase
       .from("challenges")
@@ -60,13 +75,27 @@ export async function recalculateAllEloScores(supabase: SupabaseClient) {
 
     if (!winner || !loser) continue;
 
+    // Get current comparison counts for adaptive K
+    const winnerCount = comparisonCounts.get(comp.winner_id) || 0;
+    const loserCount = comparisonCounts.get(comp.loser_id) || 0;
+
+    // Use average K-factor of both challenges
+    const winnerK = getAdaptiveKFactor(winnerCount);
+    const loserK = getAdaptiveKFactor(loserCount);
+    const avgK = Math.round((winnerK + loserK) / 2);
+
     const [newWinnerScore, newLoserScore] = updateEloRatings(
       winner.elo_score || 1500,
-      loser.elo_score || 1500
+      loser.elo_score || 1500,
+      avgK
     );
 
     await supabase.from("challenges").update({ elo_score: newWinnerScore }).eq("id", comp.winner_id);
 
     await supabase.from("challenges").update({ elo_score: newLoserScore }).eq("id", comp.loser_id);
+
+    // Increment comparison counts
+    comparisonCounts.set(comp.winner_id, winnerCount + 1);
+    comparisonCounts.set(comp.loser_id, loserCount + 1);
   }
 }

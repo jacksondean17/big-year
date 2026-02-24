@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getExpectedScore, updateEloRatings } from "../elo";
+import { getExpectedScore, updateEloRatings, getAdaptiveKFactor } from "../elo";
 
 describe("Elo Rating System", () => {
   describe("getExpectedScore", () => {
@@ -267,6 +267,70 @@ describe("Elo Rating System", () => {
       // Order should be consistent
       expect(a1).toBeGreaterThan(b1);
       expect(b1).toBeGreaterThan(c1);
+    });
+  });
+
+  describe("Adaptive K-factor", () => {
+    it("should return high K-factor for new challenges", () => {
+      expect(getAdaptiveKFactor(0)).toBe(40);
+      expect(getAdaptiveKFactor(5)).toBe(40);
+      expect(getAdaptiveKFactor(9)).toBe(40);
+    });
+
+    it("should return standard K-factor for developing challenges", () => {
+      expect(getAdaptiveKFactor(10)).toBe(32);
+      expect(getAdaptiveKFactor(20)).toBe(32);
+      expect(getAdaptiveKFactor(29)).toBe(32);
+    });
+
+    it("should return low K-factor for established challenges", () => {
+      expect(getAdaptiveKFactor(30)).toBe(24);
+      expect(getAdaptiveKFactor(50)).toBe(24);
+      expect(getAdaptiveKFactor(100)).toBe(24);
+    });
+
+    it("should result in larger rating changes for new challenges", () => {
+      // New challenge (K=40) vs established challenge (K=24)
+      const [newWinner40, newLoser40] = updateEloRatings(1500, 1500, 40);
+      const [newWinner24, newLoser24] = updateEloRatings(1500, 1500, 24);
+
+      const change40 = newWinner40 - 1500;
+      const change24 = newWinner24 - 1500;
+
+      // Higher K should produce larger changes
+      expect(change40).toBeGreaterThan(change24);
+      expect(change40).toBe(20); // 40 * 0.5 = 20
+      expect(change24).toBe(12); // 24 * 0.5 = 12
+    });
+
+    it("should stabilize ratings faster with adaptive K", () => {
+      // Simulate two scenarios: fixed K vs adaptive K
+
+      // Scenario 1: Fixed K=32 throughout
+      let ratingA_fixed = 1500;
+      let ratingB_fixed = 1500;
+
+      for (let i = 0; i < 40; i++) {
+        [ratingA_fixed, ratingB_fixed] = updateEloRatings(ratingA_fixed, ratingB_fixed, 32);
+      }
+
+      // Scenario 2: Adaptive K (starts at 40, drops to 32 at 10, drops to 24 at 30)
+      let ratingA_adaptive = 1500;
+      let ratingB_adaptive = 1500;
+
+      for (let i = 0; i < 40; i++) {
+        const k = getAdaptiveKFactor(i);
+        [ratingA_adaptive, ratingB_adaptive] = updateEloRatings(ratingA_adaptive, ratingB_adaptive, k);
+      }
+
+      // Both should have A > B (A always wins)
+      expect(ratingA_fixed).toBeGreaterThan(ratingB_fixed);
+      expect(ratingA_adaptive).toBeGreaterThan(ratingB_adaptive);
+
+      // Adaptive should reach higher peak early, then stabilize
+      // After 40 comparisons with adaptive K, rating should be somewhat close to fixed K
+      // But the trajectory is different (faster early, slower late)
+      expect(Math.abs(ratingA_adaptive - ratingA_fixed)).toBeLessThan(100);
     });
   });
 });

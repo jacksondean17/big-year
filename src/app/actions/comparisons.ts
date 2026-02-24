@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { updateEloRatings, recalculateAllEloScores } from "@/lib/elo";
+import { updateEloRatings, recalculateAllEloScores, getAdaptiveKFactor } from "@/lib/elo";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin";
 
@@ -15,8 +15,13 @@ export async function submitComparison(winnerId: number, loserId: number) {
     throw new Error("Must be logged in to compare challenges");
   }
 
-  // Get current Elo scores
+  // Get current Elo scores and comparison counts for adaptive K
   const { data: challenges } = await supabase.from("challenges").select("id, elo_score").in("id", [winnerId, loserId]);
+
+  const { data: comparisonCounts } = await supabase
+    .from("challenge_comparison_counts")
+    .select("challenge_id, comparison_count")
+    .in("challenge_id", [winnerId, loserId]);
 
   if (!challenges || challenges.length !== 2) {
     throw new Error("Invalid challenge IDs");
@@ -29,8 +34,17 @@ export async function submitComparison(winnerId: number, loserId: number) {
     throw new Error("Challenge not found");
   }
 
-  // Calculate new ratings
-  const [newWinnerScore, newLoserScore] = updateEloRatings(winner.elo_score || 1500, loser.elo_score || 1500);
+  // Get comparison counts for adaptive K-factor
+  const winnerCount = comparisonCounts?.find((c) => c.challenge_id === winnerId)?.comparison_count || 0;
+  const loserCount = comparisonCounts?.find((c) => c.challenge_id === loserId)?.comparison_count || 0;
+
+  // Use average K-factor of both challenges
+  const winnerK = getAdaptiveKFactor(winnerCount);
+  const loserK = getAdaptiveKFactor(loserCount);
+  const avgK = Math.round((winnerK + loserK) / 2);
+
+  // Calculate new ratings with adaptive K
+  const [newWinnerScore, newLoserScore] = updateEloRatings(winner.elo_score || 1500, loser.elo_score || 1500, avgK);
 
   // Insert comparison record
   const { data: comparison, error: compError } = await supabase
