@@ -5,6 +5,40 @@ interface MatchingOptions {
   allChallenges: Challenge[];
   userComparisons: ChallengeComparison[];
   adaptiveRatio: number; // 0.85 = 85% adaptive, 15% random
+  maxChallengeShare?: number; // Maximum % any challenge can appear (default 15%)
+}
+
+/**
+ * Calculate how many times each challenge has been compared by this user
+ */
+function getChallengeFrequency(userComparisons: ChallengeComparison[]): Map<number, number> {
+  const frequency = new Map<number, number>();
+
+  userComparisons.forEach((comp) => {
+    frequency.set(comp.winner_id, (frequency.get(comp.winner_id) || 0) + 1);
+    frequency.set(comp.loser_id, (frequency.get(comp.loser_id) || 0) + 1);
+  });
+
+  return frequency;
+}
+
+/**
+ * Check if a challenge has exceeded the max share threshold for this user
+ * Only enforces after minimum 20 comparisons to avoid over-filtering early on
+ */
+function isOverRepresented(
+  challengeId: number,
+  frequency: Map<number, number>,
+  totalComparisons: number,
+  maxShare: number
+): boolean {
+  // Don't enforce balance until user has made at least 20 comparisons
+  if (totalComparisons < 20) return false;
+
+  const challengeCount = frequency.get(challengeId) || 0;
+  const share = challengeCount / totalComparisons;
+
+  return share > maxShare;
 }
 
 /**
@@ -12,14 +46,19 @@ interface MatchingOptions {
  * - 85% adaptive: matches similar-rated challenges
  * - 15% random: prevents rating band lock-in
  * - Avoids pairs already compared by this user
+ * - Enforces judge balance: no challenge exceeds maxChallengeShare (default 15%)
  */
 export function getNextMatchup(options: MatchingOptions): [Challenge, Challenge] | null {
-  const { userId, allChallenges, userComparisons, adaptiveRatio } = options;
+  const { userId, allChallenges, userComparisons, adaptiveRatio, maxChallengeShare = 0.15 } = options;
 
   // Get challenges this user hasn't compared yet
   const comparedPairs = new Set(
     userComparisons.map((c) => `${Math.min(c.winner_id, c.loser_id)}-${Math.max(c.winner_id, c.loser_id)}`)
   );
+
+  // Calculate challenge frequency for judge balance
+  const challengeFrequency = getChallengeFrequency(userComparisons);
+  const totalUserComparisons = userComparisons.length;
 
   // Filter available pairs
   const availablePairs: [Challenge, Challenge][] = [];
@@ -30,9 +69,18 @@ export function getNextMatchup(options: MatchingOptions): [Challenge, Challenge]
       const b = allChallenges[j];
       const pairKey = `${Math.min(a.id, b.id)}-${Math.max(a.id, b.id)}`;
 
-      if (!comparedPairs.has(pairKey)) {
-        availablePairs.push([a, b]);
+      // Skip if already compared
+      if (comparedPairs.has(pairKey)) continue;
+
+      // Skip if either challenge is over-represented (judge balance)
+      if (
+        isOverRepresented(a.id, challengeFrequency, totalUserComparisons, maxChallengeShare) ||
+        isOverRepresented(b.id, challengeFrequency, totalUserComparisons, maxChallengeShare)
+      ) {
+        continue;
       }
+
+      availablePairs.push([a, b]);
     }
   }
 
