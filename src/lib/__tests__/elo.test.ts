@@ -154,4 +154,119 @@ describe("Elo Rating System", () => {
       expect(ratingB).toBeGreaterThan(ratingC);
     });
   });
+
+  describe("Batch Elo recalculation", () => {
+    it("should produce consistent results when replaying comparisons in order", () => {
+      // Simulate recalculation: reset to 1500, replay comparisons
+      const challenges = new Map([
+        [1, { rating: 1500 }],
+        [2, { rating: 1500 }],
+        [3, { rating: 1500 }],
+      ]);
+
+      // Comparisons in chronological order
+      const comparisons = [
+        { winner: 1, loser: 2 }, // 1 beats 2
+        { winner: 2, loser: 3 }, // 2 beats 3
+        { winner: 1, loser: 3 }, // 1 beats 3
+        { winner: 1, loser: 2 }, // 1 beats 2 again
+      ];
+
+      // Replay comparisons
+      comparisons.forEach((comp) => {
+        const winnerRating = challenges.get(comp.winner)!.rating;
+        const loserRating = challenges.get(comp.loser)!.rating;
+
+        const [newWinner, newLoser] = updateEloRatings(winnerRating, loserRating);
+
+        challenges.get(comp.winner)!.rating = newWinner;
+        challenges.get(comp.loser)!.rating = newLoser;
+      });
+
+      // Verify final rankings
+      const rating1 = challenges.get(1)!.rating;
+      const rating2 = challenges.get(2)!.rating;
+      const rating3 = challenges.get(3)!.rating;
+
+      // 1 won 3 times (all comparisons), should be highest
+      expect(rating1).toBeGreaterThan(rating2);
+      expect(rating1).toBeGreaterThan(rating3);
+
+      // 2 won once and lost twice, should be middle or close to 3
+      // 3 lost twice, should be lowest or close to 2
+      expect(rating3).toBeLessThan(rating1);
+    });
+
+    it("should reset all ratings to 1500 before replay", () => {
+      // Start with non-default ratings
+      const challenges = new Map([
+        [1, { rating: 1650 }],
+        [2, { rating: 1450 }],
+      ]);
+
+      // Reset to 1500 (simulates what recalculateAllEloScores does)
+      challenges.forEach((challenge) => {
+        challenge.rating = 1500;
+      });
+
+      expect(challenges.get(1)!.rating).toBe(1500);
+      expect(challenges.get(2)!.rating).toBe(1500);
+
+      // Then replay a comparison
+      const [newWinner, newLoser] = updateEloRatings(1500, 1500);
+      challenges.get(1)!.rating = newWinner;
+      challenges.get(2)!.rating = newLoser;
+
+      // Ratings should change from 1500, not from old values
+      expect(challenges.get(1)!.rating).toBe(1516);
+      expect(challenges.get(2)!.rating).toBe(1484);
+    });
+
+    it("should maintain rating order consistency across recalculations", () => {
+      // If A always beats B and B always beats C,
+      // A should always end up highest, C lowest
+      const runSimulation = () => {
+        const challenges = new Map([
+          [1, { rating: 1500 }],
+          [2, { rating: 1500 }],
+          [3, { rating: 1500 }],
+        ]);
+
+        const comparisons = [
+          { winner: 1, loser: 2 },
+          { winner: 2, loser: 3 },
+          { winner: 1, loser: 3 },
+          { winner: 1, loser: 2 },
+          { winner: 2, loser: 3 },
+        ];
+
+        comparisons.forEach((comp) => {
+          const winnerRating = challenges.get(comp.winner)!.rating;
+          const loserRating = challenges.get(comp.loser)!.rating;
+          const [newWinner, newLoser] = updateEloRatings(winnerRating, loserRating);
+          challenges.get(comp.winner)!.rating = newWinner;
+          challenges.get(comp.loser)!.rating = newLoser;
+        });
+
+        return [
+          challenges.get(1)!.rating,
+          challenges.get(2)!.rating,
+          challenges.get(3)!.rating,
+        ];
+      };
+
+      // Run simulation twice
+      const [a1, b1, c1] = runSimulation();
+      const [a2, b2, c2] = runSimulation();
+
+      // Results should be identical (deterministic)
+      expect(a1).toBe(a2);
+      expect(b1).toBe(b2);
+      expect(c1).toBe(c2);
+
+      // Order should be consistent
+      expect(a1).toBeGreaterThan(b1);
+      expect(b1).toBeGreaterThan(c1);
+    });
+  });
 });

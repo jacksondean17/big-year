@@ -1,8 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { updateEloRatings } from "@/lib/elo";
+import { updateEloRatings, recalculateAllEloScores } from "@/lib/elo";
 import { revalidatePath } from "next/cache";
+import { requireAdmin } from "@/lib/admin";
 
 export async function submitComparison(winnerId: number, loserId: number) {
   const supabase = await createClient();
@@ -116,4 +117,35 @@ export async function getUserComparisons(userId?: string) {
     .order("created_at", { ascending: false });
 
   return data || [];
+}
+
+/**
+ * Admin-only: Recalculate all Elo scores from comparison history
+ * Resets all challenges to 1500 and replays all comparisons in chronological order
+ */
+export async function recalculateAllElos() {
+  await requireAdmin();
+
+  const supabase = await createClient();
+
+  // Get count before recalculation
+  const { count: comparisonCount } = await supabase
+    .from("challenge_comparisons")
+    .select("*", { count: "exact", head: true });
+
+  const startTime = Date.now();
+
+  await recalculateAllEloScores(supabase);
+
+  const duration = Date.now() - startTime;
+
+  // Revalidate relevant paths
+  revalidatePath("/rank");
+  revalidatePath("/rank/leaderboard");
+  revalidatePath("/rank/stats");
+
+  return {
+    comparisonsProcessed: comparisonCount || 0,
+    durationMs: duration,
+  };
 }
