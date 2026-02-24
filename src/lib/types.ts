@@ -29,6 +29,7 @@ export interface UserProfile {
   display_name: string;
   avatar_url: string | null;
   guild_nickname?: string | null;
+  is_admin?: boolean;
 }
 
 /** Returns the best display name for a user (guild nickname preferred) */
