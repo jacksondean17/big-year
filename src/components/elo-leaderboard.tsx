@@ -113,7 +113,3 @@ export function EloLeaderboard({ challenges }: Props) {
     </div>
   );
 }
-      })}
-    </div>
-  );
-}
