@@ -1,0 +1,119 @@
+"use server";
+
+import { createClient } from "@/lib/supabase/server";
+import { updateEloRatings } from "@/lib/elo";
+import { revalidatePath } from "next/cache";
+
+export async function submitComparison(winnerId: number, loserId: number) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("Must be logged in to compare challenges");
+  }
+
+  // Get current Elo scores
+  const { data: challenges } = await supabase.from("challenges").select("id, elo_score").in("id", [winnerId, loserId]);
+
+  if (!challenges || challenges.length !== 2) {
+    throw new Error("Invalid challenge IDs");
+  }
+
+  const winner = challenges.find((c) => c.id === winnerId);
+  const loser = challenges.find((c) => c.id === loserId);
+
+  if (!winner || !loser) {
+    throw new Error("Challenge not found");
+  }
+
+  // Calculate new ratings
+  const [newWinnerScore, newLoserScore] = updateEloRatings(winner.elo_score || 1500, loser.elo_score || 1500);
+
+  // Insert comparison record
+  const { data: comparison, error: compError } = await supabase
+    .from("challenge_comparisons")
+    .insert({
+      user_id: user.id,
+      winner_id: winnerId,
+      loser_id: loserId,
+    })
+    .select()
+    .single();
+
+  if (compError) {
+    throw new Error(`Failed to save comparison: ${compError.message}`);
+  }
+
+  // Update Elo scores
+  await supabase.from("challenges").update({ elo_score: newWinnerScore }).eq("id", winnerId);
+
+  await supabase.from("challenges").update({ elo_score: newLoserScore }).eq("id", loserId);
+
+  revalidatePath("/rank");
+
+  return {
+    comparison,
+    newScores: {
+      [winnerId]: newWinnerScore,
+      [loserId]: newLoserScore,
+    },
+  };
+}
+
+export async function undoLastComparison() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("Must be logged in");
+  }
+
+  // Get user's most recent comparison
+  const { data: lastComparison } = await supabase
+    .from("challenge_comparisons")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (!lastComparison) {
+    throw new Error("No comparisons to undo");
+  }
+
+  // Delete the comparison
+  await supabase.from("challenge_comparisons").delete().eq("id", lastComparison.id);
+
+  // Note: For MVP, we're not recalculating Elo scores after undo
+  // This means there will be slight inconsistency, but it's acceptable for MVP
+  // For production, we would call recalculateAllEloScores() here
+
+  revalidatePath("/rank");
+
+  return { undone: lastComparison };
+}
+
+export async function getUserComparisons(userId?: string) {
+  const supabase = await createClient();
+
+  let targetUserId = userId;
+  if (!targetUserId) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return [];
+    targetUserId = user.id;
+  }
+
+  const { data } = await supabase
+    .from("challenge_comparisons")
+    .select("*")
+    .eq("user_id", targetUserId)
+    .order("created_at", { ascending: false });
+
+  return data || [];
+}

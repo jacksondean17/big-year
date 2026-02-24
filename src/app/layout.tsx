@@ -87,6 +87,13 @@ export default function RootLayout({
               >
                 Leaderboard
               </Link>
+              <span className="text-border shrink-0">|</span>
+              <Link
+                href="/rank"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0"
+              >
+                Rank
+              </Link>
               <AuthButton />
             </nav>
             <MobileNav />

@@ -11,6 +11,7 @@ export interface Challenge {
   courage: number | null;
   story_power: number | null;
   commitment: number | null;
+  elo_score: number | null;
 }
 
 export type UserVoteType = 1 | -1 | null;
@@ -126,4 +127,24 @@ export interface ChallengeCompleter {
   media: CompletionMedia[];
   profiles: UserProfile;
   isCurrentUser?: boolean;
+}
+
+export interface ChallengeComparison {
+  id: string;
+  user_id: string;
+  winner_id: number;
+  loser_id: number;
+  created_at: string;
+}
+
+export interface ChallengeComparisonCounts {
+  challenge_id: number;
+  comparison_count: number;
+  wins: number;
+  losses: number;
+}
+
+export interface EloMatchup {
+  challengeA: Challenge;
+  challengeB: Challenge;
 }

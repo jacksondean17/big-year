@@ -220,6 +220,34 @@
     }
   }
 
+  @keyframes pulse-once {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.9;
+      transform: scale(1.02);
+    }
+  }
+
+  @keyframes scale-in {
+    0% {
+      transform: scale(0) rotate(-180deg);
+    }
+    100% {
+      transform: scale(1) rotate(0deg);
+    }
+  }
+
+  .animate-pulse-once {
+    animation: pulse-once 0.6s ease-in-out;
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
   .art-body {
     min-height: 100vh;
     position: relative;
