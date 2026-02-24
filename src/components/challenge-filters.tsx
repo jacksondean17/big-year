@@ -18,11 +18,11 @@ interface ChallengeFiltersProps {
 
 const sortOptions: { value: SortOption; label: string }[] = [
   { value: "default", label: "Default" },
-  { value: "popular", label: "Most Upvoted" },
-  { value: "saves", label: "Most Saves" },
+  { value: "popular", label: "Upvotes" },
+  { value: "saves", label: "Saves" },
   { value: "controversial", label: "Controversial" },
   { value: "points", label: "Points" },
-  { value: "completions", label: "Most Completions" },
+  { value: "completions", label: "Completions" },
 ];
 
 export function ChallengeFilters({
