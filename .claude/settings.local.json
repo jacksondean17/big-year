@@ -18,7 +18,10 @@
       "Bash(git push:*)",
       "Bash(npm run lint:*)",
       "Bash(git add:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(npm run:*)",
+      "Bash(supabase db:*)",
+      "Bash(npm test:*)"
     ],
     "additionalDirectories": [
       "c:\\Users\\jacks\\git\\big-year\\src\\app\\challenges"

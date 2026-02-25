@@ -37,7 +37,7 @@ export default async function EloLeaderboardPage() {
   const { data: challenges } = await supabase
     .from("challenges")
     .select("*, comparison_counts:challenge_comparison_counts(*)")
-    .order("elo_score", { ascending: false, nullsLast: true });
+    .order("elo_score", { ascending: false, nullsFirst: false });
 
   // Get total comparison count for recalculation info
   const { count: totalComparisons } = await supabase

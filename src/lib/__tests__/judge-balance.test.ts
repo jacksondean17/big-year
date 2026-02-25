@@ -21,6 +21,8 @@ describe("Judge Balance Enforcement", () => {
       story_power: 5,
       commitment: 5,
       elo_score: 1500,
+      is_benchmark: false,
+      benchmark_elo: null,
     }));
   });
 

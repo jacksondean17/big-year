@@ -22,6 +22,8 @@ describe("Ranking Match Selection", () => {
         story_power: 5,
         commitment: 5,
         elo_score: 1500,
+        is_benchmark: false,
+        benchmark_elo: null,
       },
       {
         id: 2,
@@ -37,6 +39,8 @@ describe("Ranking Match Selection", () => {
         story_power: 6,
         commitment: 6,
         elo_score: 1520,
+        is_benchmark: false,
+        benchmark_elo: null,
       },
       {
         id: 3,
@@ -52,6 +56,8 @@ describe("Ranking Match Selection", () => {
         story_power: 7,
         commitment: 7,
         elo_score: 1480,
+        is_benchmark: false,
+        benchmark_elo: null,
       },
       {
         id: 4,
@@ -67,6 +73,8 @@ describe("Ranking Match Selection", () => {
         story_power: 8,
         commitment: 8,
         elo_score: 1600,
+        is_benchmark: false,
+        benchmark_elo: null,
       },
     ];
   });

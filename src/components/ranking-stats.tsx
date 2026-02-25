@@ -1,7 +1,7 @@
 "use client";
 
 import { getDisplayName } from "@/lib/types";
-import { Avatar } from "./ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { Trophy, Users, Target, TrendingUp } from "lucide-react";
 
 interface JudgeData {
@@ -96,11 +96,14 @@ export function RankingStats({ stats }: Props) {
               <div className="text-2xl font-bold text-muted-foreground w-8">
                 {index + 1}
               </div>
-              <Avatar
-                src={judge.profile.avatar_url}
-                alt={getDisplayName(judge.profile)}
-                className="w-10 h-10"
-              />
+              <Avatar className="w-10 h-10">
+                {judge.profile.avatar_url && (
+                  <AvatarImage src={judge.profile.avatar_url} alt={getDisplayName(judge.profile)} />
+                )}
+                <AvatarFallback>
+                  {getDisplayName(judge.profile).slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
               <div className="flex-1">
                 <div className="font-semibold">{getDisplayName(judge.profile)}</div>
                 <div className="text-sm text-muted-foreground">

@@ -56,7 +56,9 @@ export function EloLeaderboard({ challenges }: Props) {
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="font-semibold leading-tight">{challenge.title}</h3>
                 {challenge.is_benchmark && (
-                  <Pin className="w-4 h-4 text-primary" title="Benchmark challenge (fixed Elo)" />
+                  <span title="Benchmark challenge (fixed Elo)">
+                    <Pin className="w-4 h-4 text-primary" />
+                  </span>
                 )}
               </div>
               <div className="flex items-center gap-2">
