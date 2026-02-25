@@ -25,7 +25,7 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://www.youtube.com",
+      "script-src 'self' 'unsafe-inline' https://www.youtube.com https://vercel.live",
       "style-src 'self' 'unsafe-inline'",
       `img-src 'self' cdn.discordapp.com api.dicebear.com i.ytimg.com ${process.env.R2_PUBLIC_URL ?? ""} data: blob:`,
       "frame-src calendar.google.com www.youtube-nocookie.com www.youtube.com",
