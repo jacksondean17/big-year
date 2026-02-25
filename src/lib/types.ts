@@ -11,6 +11,9 @@ export interface Challenge {
   courage: number | null;
   story_power: number | null;
   commitment: number | null;
+  elo_score: number | null;
+  is_benchmark: boolean | null;
+  benchmark_elo: number | null;
 }
 
 export type UserVoteType = 1 | -1 | null;
@@ -28,6 +31,7 @@ export interface UserProfile {
   display_name: string;
   avatar_url: string | null;
   guild_nickname?: string | null;
+  is_admin?: boolean;
 }
 
 /** Returns the best display name for a user (guild nickname preferred) */
@@ -126,4 +130,24 @@ export interface ChallengeCompleter {
   media: CompletionMedia[];
   profiles: UserProfile;
   isCurrentUser?: boolean;
+}
+
+export interface ChallengeComparison {
+  id: string;
+  user_id: string;
+  winner_id: number;
+  loser_id: number;
+  created_at: string;
+}
+
+export interface ChallengeComparisonCounts {
+  challenge_id: number;
+  comparison_count: number;
+  wins: number;
+  losses: number;
+}
+
+export interface EloMatchup {
+  challengeA: Challenge;
+  challengeB: Challenge;
 }
