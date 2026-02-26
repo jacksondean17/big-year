@@ -12,8 +12,9 @@ CREATE INDEX idx_challenges_is_benchmark ON challenges(is_benchmark) WHERE is_be
 ALTER TABLE challenges
   ADD CONSTRAINT chk_benchmark_elo_required
   CHECK (
-    (is_benchmark = false AND benchmark_elo IS NULL) OR
-    (is_benchmark = true AND benchmark_elo IS NOT NULL)
+    is_benchmark IS NULL OR
+    is_benchmark = false OR
+    benchmark_elo IS NOT NULL
   );
 
 COMMENT ON COLUMN challenges.is_benchmark IS 'Whether this challenge has a fixed Elo score for calibration';
