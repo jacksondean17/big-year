@@ -53,7 +53,7 @@ CREATE POLICY "Users can delete own comparisons"
 CREATE VIEW challenge_comparison_counts AS
 SELECT
   c.id AS challenge_id,
-  COALESCE(COUNT(DISTINCT cc.id) FILTER (WHERE cc.winner_id = c.id OR cc.loser_id = c.id), 0)::int AS comparison_count,
+  COALESCE(COUNT(DISTINCT cc.id), 0)::int AS comparison_count,
   COALESCE(COUNT(cc.id) FILTER (WHERE cc.winner_id = c.id), 0)::int AS wins,
   COALESCE(COUNT(cc.id) FILTER (WHERE cc.loser_id = c.id), 0)::int AS losses
 FROM challenges c
