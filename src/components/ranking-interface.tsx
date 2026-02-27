@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { Challenge, ChallengeComparison } from "@/lib/types";
-import { getNextMatchup, getUserComparisonStats } from "@/lib/ranking-matches";
+import { getNextMatchup, getUserComparisonStats, getChallengeFrequency } from "@/lib/ranking-matches";
 import { submitComparison } from "@/app/actions/comparisons";
 import { Trophy } from "lucide-react";
 import { RankingCard } from "./ranking-card";
@@ -50,12 +50,31 @@ export function RankingInterface({ challenges, userComparisons: initialCompariso
   const handlePick = (winnerId: number) => {
     if (!currentMatchup || isPending) return;
 
-    const loserId = currentMatchup[0].id === winnerId ? currentMatchup[1].id : currentMatchup[0].id;
+    const winner = currentMatchup.find((c) => c.id === winnerId)!;
+    const loser = currentMatchup.find((c) => c.id !== winnerId)!;
 
-    // Submit immediately
+    // Get comparison counts for K-factor calculation
+    const challengeFrequency = getChallengeFrequency(comparisons);
+    const winnerCount = challengeFrequency.get(winnerId) || 0;
+    const loserCount = challengeFrequency.get(loser.id) || 0;
+
+    // Get current Elo scores (use benchmark Elo if applicable)
+    const winnerElo = winner.is_benchmark ? winner.benchmark_elo || 1500 : winner.elo_score || 1500;
+    const loserElo = loser.is_benchmark ? loser.benchmark_elo || 1500 : loser.elo_score || 1500;
+
+    // Submit immediately with all data client already has
     startTransition(async () => {
       try {
-        const result = await submitComparison(winnerId, loserId);
+        const result = await submitComparison(
+          winnerId,
+          loser.id,
+          winnerElo,
+          loserElo,
+          winner.is_benchmark || false,
+          loser.is_benchmark || false,
+          winnerCount,
+          loserCount
+        );
 
         // Add to local state
         setComparisons((prev) => [result.comparison, ...prev]);

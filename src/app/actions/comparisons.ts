@@ -5,7 +5,16 @@ import { updateEloRatings, recalculateAllEloScores, getAdaptiveKFactor } from "@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin";
 
-export async function submitComparison(winnerId: number, loserId: number) {
+export async function submitComparison(
+  winnerId: number,
+  loserId: number,
+  winnerCurrentElo: number,
+  loserCurrentElo: number,
+  winnerIsBenchmark: boolean,
+  loserIsBenchmark: boolean,
+  winnerCount: number,
+  loserCount: number
+) {
   const supabase = await createClient();
 
   const {
@@ -15,46 +24,14 @@ export async function submitComparison(winnerId: number, loserId: number) {
     throw new Error("Must be logged in to compare challenges");
   }
 
-  // Get current Elo scores, benchmark status, and comparison counts for adaptive K
-  const { data: challenges } = await supabase
-    .from("challenges")
-    .select("id, elo_score, is_benchmark, benchmark_elo")
-    .in("id", [winnerId, loserId]);
-
-  const { data: comparisonCounts } = await supabase
-    .from("challenge_comparison_counts")
-    .select("challenge_id, comparison_count")
-    .in("challenge_id", [winnerId, loserId]);
-
-  if (!challenges || challenges.length !== 2) {
-    throw new Error("Invalid challenge IDs");
-  }
-
-  const winner = challenges.find((c) => c.id === winnerId);
-  const loser = challenges.find((c) => c.id === loserId);
-
-  if (!winner || !loser) {
-    throw new Error("Challenge not found");
-  }
-
-  // Use benchmark Elo if challenge is a benchmark, otherwise use current Elo
-  const winnerCurrentElo = winner.is_benchmark ? winner.benchmark_elo || 1500 : winner.elo_score || 1500;
-  const loserCurrentElo = loser.is_benchmark ? loser.benchmark_elo || 1500 : loser.elo_score || 1500;
-
-  // Get comparison counts for adaptive K-factor
-  const winnerCount = comparisonCounts?.find((c) => c.challenge_id === winnerId)?.comparison_count || 0;
-  const loserCount = comparisonCounts?.find((c) => c.challenge_id === loserId)?.comparison_count || 0;
-
-  // Use average K-factor of both challenges
+  // Calculate K-factor and new Elo scores
   const winnerK = getAdaptiveKFactor(winnerCount);
   const loserK = getAdaptiveKFactor(loserCount);
   const avgK = Math.round((winnerK + loserK) / 2);
-
-  // Calculate new ratings with adaptive K
   const [newWinnerScore, newLoserScore] = updateEloRatings(winnerCurrentElo, loserCurrentElo, avgK);
 
-  // Insert comparison record
-  const { data: comparison, error: compError } = await supabase
+  // Insert comparison record and update Elo scores in parallel
+  const insertPromise = supabase
     .from("challenge_comparisons")
     .insert({
       user_id: user.id,
@@ -64,24 +41,26 @@ export async function submitComparison(winnerId: number, loserId: number) {
     .select()
     .single();
 
-  if (compError) {
-    throw new Error(`Failed to save comparison: ${compError.message}`);
+  const updatePromises = [];
+  if (!winnerIsBenchmark) {
+    updatePromises.push(supabase.from("challenges").update({ elo_score: newWinnerScore }).eq("id", winnerId));
+  }
+  if (!loserIsBenchmark) {
+    updatePromises.push(supabase.from("challenges").update({ elo_score: newLoserScore }).eq("id", loserId));
   }
 
-  // Update Elo scores (skip benchmarks - they keep their fixed scores)
-  if (!winner.is_benchmark) {
-    await supabase.from("challenges").update({ elo_score: newWinnerScore }).eq("id", winnerId);
-  }
+  // Execute all operations in parallel
+  const [insertResult] = await Promise.all([insertPromise, ...updatePromises]);
 
-  if (!loser.is_benchmark) {
-    await supabase.from("challenges").update({ elo_score: newLoserScore }).eq("id", loserId);
+  if (insertResult.error) {
+    throw new Error(`Failed to save comparison: ${insertResult.error.message}`);
   }
 
   return {
-    comparison,
+    comparison: insertResult.data,
     newScores: {
-      [winnerId]: winner.is_benchmark ? winnerCurrentElo : newWinnerScore,
-      [loserId]: loser.is_benchmark ? loserCurrentElo : newLoserScore,
+      [winnerId]: winnerIsBenchmark ? winnerCurrentElo : newWinnerScore,
+      [loserId]: loserIsBenchmark ? loserCurrentElo : newLoserScore,
     },
   };
 }
@@ -133,9 +112,10 @@ export async function getUserComparisons(userId?: string) {
     targetUserId = user.id;
   }
 
+  // Only select fields needed for ranking matchup algorithm
   const { data } = await supabase
     .from("challenge_comparisons")
-    .select("*")
+    .select("id, user_id, winner_id, loser_id, created_at")
     .eq("user_id", targetUserId)
     .order("created_at", { ascending: false });
 

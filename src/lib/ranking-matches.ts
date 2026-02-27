@@ -11,7 +11,7 @@ interface MatchingOptions {
 /**
  * Calculate how many times each challenge has been compared by this user
  */
-function getChallengeFrequency(userComparisons: ChallengeComparison[]): Map<number, number> {
+export function getChallengeFrequency(userComparisons: ChallengeComparison[]): Map<number, number> {
   const frequency = new Map<number, number>();
 
   userComparisons.forEach((comp) => {
