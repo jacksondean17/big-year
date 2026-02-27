@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronUp, ChevronDown, Trophy } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LeagueBadge } from "@/components/league-badge";
@@ -29,9 +29,21 @@ function RankRow({
         }`}
       >
         <span className="w-6 flex items-center justify-center text-muted-foreground">
-          {position === "above" && <ChevronUp className="size-4" />}
-          {position === "below" && <ChevronDown className="size-4" />}
+          {user.rank === 1 ? (
+            <Trophy className="size-4 text-yellow-500" />
+          ) : user.rank === 2 ? (
+            <Trophy className="size-4 text-slate-400" />
+          ) : user.rank === 3 ? (
+            <Trophy className="size-4 text-amber-700" />
+          ) : position === "above" ? (
+            <ChevronUp className="size-4" />
+          ) : position === "below" ? (
+            <ChevronDown className="size-4" />
+          ) : null}
         </span>
+        {user.rank <= 3 && (
+          <span className="w-4 text-xs font-bold text-muted-foreground">{user.rank}</span>
+        )}
         <Avatar className="size-8">
           {user.avatar_url && (
             <AvatarImage src={user.avatar_url} alt={name} />
