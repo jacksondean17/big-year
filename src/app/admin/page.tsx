@@ -18,6 +18,9 @@ export default async function AdminPage() {
           <Button asChild size="sm" variant="outline">
             <Link href="/admin/completions">Completions</Link>
           </Button>
+          <Button asChild size="sm" variant="outline">
+            <Link href="/admin/rankings">Rankings</Link>
+          </Button>
           <Button asChild size="sm">
             <Link href="/admin/challenges/new">Add Challenge</Link>
           </Button>

@@ -28,8 +28,12 @@ const FILLER_NAMES = [
   "Zane", "Jade", "Kyle", "Luna", "Max",
 ];
 
+// Stable UUID so Alice can be referenced in .env files (e.g. ADMIN_USER_IDS)
+const ALICE_ADMIN_UUID = "a11ce000-0000-0000-0000-000000000000";
+
 const TEST_USERS = [
   {
+    id: ALICE_ADMIN_UUID,
     email: "alice@example.com",
     password: "password123",
     display_name: "Alice Adventure",
@@ -157,6 +161,7 @@ async function seedUsers(): Promise<string[]> {
   for (const user of TEST_USERS) {
     // Create user via admin API
     const { data, error } = await supabase.auth.admin.createUser({
+      ...("id" in user && user.id ? { id: user.id } : {}),
       email: user.email,
       password: user.password,
       email_confirm: true,
