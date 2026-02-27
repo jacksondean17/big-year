@@ -54,9 +54,9 @@ export default function RootLayout({
         <div className="filigree-layer" aria-hidden="true" />
         <header className="site-header">
           <div className="header-inner mx-auto max-w-5xl px-4 py-4 min-w-0">
-            <a href="/" className="brand text-xl tracking-tight shrink-0">
+            <Link href="/" className="brand text-xl tracking-tight shrink-0">
               The Big Year
-            </a>
+            </Link>
             <nav className="hidden md:flex items-center gap-3 overflow-x-auto min-w-0">
               <a
                 href="https://docs.google.com/document/d/143Nhx7JKWc2l0QVy8OtCkHPzdZ82VM8NJQ61VgzJtJ4/edit?tab=t.0"

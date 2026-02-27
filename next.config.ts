@@ -42,6 +42,7 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "100mb",
     },
     proxyClientMaxBodySize: "100mb",
+    scrollRestoration: true,
   },
   images: {
     remotePatterns: [
