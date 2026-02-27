@@ -11,7 +11,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Challenge } from "@/lib/types";
-import { submitComparison, skipComparison } from "@/app/actions/comparisons";
+import { ExternalLink, Undo2 } from "lucide-react";
+import { submitComparison, skipComparison, undoComparison } from "@/app/actions/comparisons";
+
+interface HistoryEntry {
+  pair: [Challenge, Challenge];
+  type: "pick" | "skip";
+}
 
 type PairKey = `${number}-${number}`;
 
@@ -40,6 +46,7 @@ export function RankingComparison({
   const [currentPair, setCurrentPair] = useState<[Challenge, Challenge] | null>(null);
   const [flashSide, setFlashSide] = useState<"left" | "right" | null>(null);
   const [busy, setBusy] = useState(false);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const challengeIds = useMemo(
@@ -109,6 +116,7 @@ export function RankingComparison({
       const key = makePairKey(left.id, right.id);
       setUsedPairs((prev) => new Set(prev).add(key));
       setComparisonCount((c) => c + 1);
+      setHistory((prev) => [...prev, { pair: [left, right], type: "pick" }]);
 
       // Animate winner grow + fade, loser shrink + fade, then advance
       setFlashSide(side);
@@ -134,6 +142,7 @@ export function RankingComparison({
     // Optimistic: update state immediately
     const key = makePairKey(left.id, right.id);
     setUsedPairs((prev) => new Set(prev).add(key));
+    setHistory((prev) => [...prev, { pair: [left, right], type: "skip" }]);
     setCurrentPair(null);
 
     // Fire-and-forget server action
@@ -142,9 +151,36 @@ export function RankingComparison({
     );
   }, [currentPair, busy]);
 
+  const handleUndo = useCallback(() => {
+    if (history.length === 0 || busy) return;
+    const last = history[history.length - 1];
+    const [a, b] = last.pair;
+    const key = makePairKey(a.id, b.id);
+
+    // Restore state
+    setHistory((prev) => prev.slice(0, -1));
+    setUsedPairs((prev) => {
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
+    if (last.type === "pick") {
+      setComparisonCount((c) => Math.max(0, c - 1));
+    }
+    setCurrentPair([a, b]);
+
+    // Fire-and-forget server deletion
+    undoComparison(a.id, b.id).catch((err) =>
+      console.error("Failed to undo comparison:", err)
+    );
+  }, [history, busy]);
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === "ArrowLeft") {
+      if (e.key === "z" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        handleUndo();
+      } else if (e.key === "ArrowLeft") {
         e.preventDefault();
         handlePick("left");
       } else if (e.key === "ArrowRight") {
@@ -155,7 +191,7 @@ export function RankingComparison({
         handleSkip();
       }
     },
-    [handlePick, handleSkip]
+    [handlePick, handleSkip, handleUndo]
   );
 
   if (!currentPair) {
@@ -209,15 +245,27 @@ export function RankingComparison({
       </div>
 
       <div className="flex flex-col items-center gap-3 mt-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleSkip}
-          disabled={busy}
-          className="text-muted-foreground"
-        >
-          Skip (S)
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleUndo}
+            disabled={busy || history.length === 0}
+            className="text-muted-foreground"
+          >
+            <Undo2 className="size-3.5 mr-1" />
+            Undo
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSkip}
+            disabled={busy}
+            className="text-muted-foreground"
+          >
+            Skip (S)
+          </Button>
+        </div>
         <p className="text-xs text-muted-foreground">
           Comparison #{comparisonCount + 1} &middot; {remainingPairs} pairs
           remaining
@@ -279,9 +327,21 @@ function ComparisonCard({
           <CardDescription className="line-clamp-3">
             {challenge.description}
           </CardDescription>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {challenge.estimated_time}
-          </p>
+          <div className="mt-2 flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              {challenge.estimated_time}
+            </p>
+            <a
+              href={`/challenges/${challenge.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+            >
+              <span className="text-[10px] opacity-50 font-mono">#{challenge.id}</span>
+              <ExternalLink className="size-3" />
+            </a>
+          </div>
         </CardContent>
       </Card>
     </button>
