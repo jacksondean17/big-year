@@ -103,19 +103,21 @@ export default async function ChallengePage({
           )}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
             <CardTitle className="text-2xl">{challenge.title}</CardTitle>
-            <div className="flex items-center gap-2 shrink-0">
-              <VoteButton
-                challengeId={challenge.id}
-                initialUpvotes={voteData.upvotes}
-                initialDownvotes={voteData.downvotes}
-                initialUserVote={userVote}
-                isLoggedIn={isLoggedIn}
-              />
-              <MyListButton
-                challengeId={challenge.id}
-                initialSaved={isSaved}
-                isLoggedIn={isLoggedIn}
-              />
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center shrink-0">
+              <div className="flex items-center gap-2">
+                <VoteButton
+                  challengeId={challenge.id}
+                  initialUpvotes={voteData.upvotes}
+                  initialDownvotes={voteData.downvotes}
+                  initialUserVote={userVote}
+                  isLoggedIn={isLoggedIn}
+                />
+                <MyListButton
+                  challengeId={challenge.id}
+                  initialSaved={isSaved}
+                  isLoggedIn={isLoggedIn}
+                />
+              </div>
               <CompletionButton
                 challengeId={challenge.id}
                 initialCompletion={userCompletion}
