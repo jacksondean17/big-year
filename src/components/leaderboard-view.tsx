@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LeagueBadge } from "@/components/league-badge";
@@ -10,11 +11,11 @@ import { getDisplayName } from "@/lib/types";
 function RankRow({
   user,
   isCurrentUser,
-  showPoints,
+  position,
 }: {
   user: RankedUser;
   isCurrentUser: boolean;
-  showPoints: boolean;
+  position: "above" | "self" | "below";
 }) {
   const name = getDisplayName(user);
 
@@ -27,8 +28,9 @@ function RankRow({
             : ""
         }`}
       >
-        <span className="w-10 text-right text-sm font-mono text-muted-foreground">
-          #{user.rank}
+        <span className="w-6 flex items-center justify-center text-muted-foreground">
+          {position === "above" && <ChevronUp className="size-4" />}
+          {position === "below" && <ChevronDown className="size-4" />}
         </span>
         <Avatar className="size-8">
           {user.avatar_url && (
@@ -43,10 +45,26 @@ function RankRow({
         </span>
         <LeagueBadge league={user.league} />
         <span className="w-16 text-right text-sm font-mono">
-          {showPoints ? `${user.total_points} pts` : "---"}
+          {isCurrentUser ? `${user.total_points} pts` : "---"}
         </span>
       </div>
     </Link>
+  );
+}
+
+function BlurredRow() {
+  return (
+    <div
+      className="flex items-center gap-3 rounded-lg px-4 py-3 blur-sm select-none pointer-events-none"
+      aria-hidden="true"
+    >
+      <span className="w-6" />
+      <Avatar className="size-8">
+        <AvatarFallback className="text-xs">?</AvatarFallback>
+      </Avatar>
+      <span className="flex-1 font-medium truncate">?????</span>
+      <span className="w-16 text-right text-sm font-mono">---</span>
+    </div>
   );
 }
 
@@ -73,8 +91,9 @@ export function LeaderboardView({ context }: { context: LeaderboardContext }) {
     );
   }
 
-  // Points visible: self + up to 2 closest above
-  const visiblePointsStart = Math.max(0, above.length - 2);
+  const showBlurAbove = above.length > 0 && above[0].rank > 1;
+  const showBlurBelow =
+    below.length > 0 && below[below.length - 1].rank < totalUsers;
 
   return (
     <div className="space-y-6">
@@ -89,19 +108,21 @@ export function LeaderboardView({ context }: { context: LeaderboardContext }) {
           <CardTitle className="text-lg">Your Neighborhood</CardTitle>
         </CardHeader>
         <CardContent className="space-y-1 py-2">
-          {above.map((user, i) => (
+          {showBlurAbove && <BlurredRow />}
+
+          {above.map((user) => (
             <RankRow
               key={user.user_id}
               user={user}
               isCurrentUser={false}
-              showPoints={i >= visiblePointsStart}
+              position="above"
             />
           ))}
 
           <RankRow
             user={currentUser}
             isCurrentUser={true}
-            showPoints={true}
+            position="self"
           />
 
           {below.map((user) => (
@@ -109,9 +130,11 @@ export function LeaderboardView({ context }: { context: LeaderboardContext }) {
               key={user.user_id}
               user={user}
               isCurrentUser={false}
-              showPoints={false}
+              position="below"
             />
           ))}
+
+          {showBlurBelow && <BlurredRow />}
         </CardContent>
       </Card>
 
