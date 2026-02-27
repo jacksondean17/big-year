@@ -47,7 +47,9 @@ export function RankingComparison({
   const [flashSide, setFlashSide] = useState<"left" | "right" | null>(null);
   const [busy, setBusy] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [autoRunning, setAutoRunning] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isDev = process.env.NODE_ENV === "development";
 
   const challengeIds = useMemo(
     () => challenges.map((c) => c.id),
@@ -194,6 +196,16 @@ export function RankingComparison({
     [handlePick, handleSkip, handleUndo]
   );
 
+  // Dev: auto-pick higher ID
+  useEffect(() => {
+    if (!autoRunning || !currentPair || busy) return;
+    const timer = setTimeout(() => {
+      const [left, right] = currentPair;
+      handlePick(left.id > right.id ? "left" : "right");
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [autoRunning, currentPair, busy, handlePick]);
+
   if (!currentPair) {
     if (remainingPairs <= 0) {
       return (
@@ -265,6 +277,15 @@ export function RankingComparison({
           >
             Skip (S)
           </Button>
+          {isDev && (
+            <Button
+              variant={autoRunning ? "destructive" : "outline"}
+              size="sm"
+              onClick={() => setAutoRunning((r) => !r)}
+            >
+              {autoRunning ? "Stop Auto" : "Auto (higher ID wins)"}
+            </Button>
+          )}
         </div>
         <p className="text-xs text-muted-foreground">
           Comparison #{comparisonCount + 1} &middot; {remainingPairs} pairs
