@@ -12,6 +12,9 @@ export const metadata = {
   description: "Help rank challenges by comparing them head-to-head",
 };
 
+// Cache the entire page render for 30 seconds
+export const revalidate = 30;
+
 export default async function RankPage() {
   const supabase = await createClient();
 
