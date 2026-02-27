@@ -10,8 +10,15 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Challenge } from "@/lib/types";
-import { ExternalLink, Undo2 } from "lucide-react";
+import { ExternalLink, HelpCircle, Undo2 } from "lucide-react";
 import { submitComparison, skipComparison, undoComparison } from "@/app/actions/comparisons";
 
 interface HistoryEntry {
@@ -48,6 +55,10 @@ export function RankingComparison({
   const [busy, setBusy] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [autoRunning, setAutoRunning] = useState(false);
+  const [showGuide, setShowGuide] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return !localStorage.getItem("ranking-guide-seen");
+  });
   const containerRef = useRef<HTMLDivElement>(null);
   const isDev = process.env.NODE_ENV === "development";
 
@@ -101,11 +112,6 @@ export function RankingComparison({
       setCurrentPair(pickRandomPair());
     }
   }, [currentPair, pickRandomPair]);
-
-  // Focus container for keyboard events
-  useEffect(() => {
-    containerRef.current?.focus();
-  }, [currentPair]);
 
   const handlePick = useCallback(
     (side: "left" | "right") => {
@@ -177,8 +183,9 @@ export function RankingComparison({
     );
   }, [history, busy]);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
+  // Global keyboard listener so arrow keys work without clicking first
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
       if (e.key === "z" && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         handleUndo();
@@ -192,9 +199,10 @@ export function RankingComparison({
         e.preventDefault();
         handleSkip();
       }
-    },
-    [handlePick, handleSkip, handleUndo]
-  );
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [handlePick, handleSkip, handleUndo]);
 
   // Dev: auto-pick higher ID
   useEffect(() => {
@@ -224,12 +232,7 @@ export function RankingComparison({
   const [left, right] = currentPair;
 
   return (
-    <div
-      ref={containerRef}
-      tabIndex={0}
-      onKeyDown={handleKeyDown}
-      className="outline-none"
-    >
+    <div ref={containerRef}>
       <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-stretch">
         <ComparisonCard
           challenge={left}
@@ -266,7 +269,7 @@ export function RankingComparison({
             className="text-muted-foreground"
           >
             <Undo2 className="size-3.5 mr-1" />
-            Undo
+            Undo <span className="text-muted-foreground/60">(Ctrl+Z)</span>
           </Button>
           <Button
             variant="ghost"
@@ -291,7 +294,21 @@ export function RankingComparison({
           Comparison #{comparisonCount + 1} &middot; {remainingPairs} pairs
           remaining
         </p>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowGuide(true)}
+          className="text-muted-foreground"
+        >
+          <HelpCircle className="size-3.5 mr-1" />
+          How this works
+        </Button>
       </div>
+
+      <RankingGuideDialog open={showGuide} onClose={() => {
+        setShowGuide(false);
+        localStorage.setItem("ranking-guide-seen", "1");
+      }} />
     </div>
   );
 }
@@ -366,5 +383,64 @@ function ComparisonCard({
         </CardContent>
       </Card>
     </button>
+  );
+}
+
+function RankingGuideDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>How Challenge Ranking Works</DialogTitle>
+          <DialogDescription>
+            Help us figure out how many points each challenge should be worth.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 text-sm">
+          <p>
+            You&apos;ll see two challenges side by side. Pick the one you think
+            should be <strong>worth more points</strong>.
+          </p>
+          <div>
+            <p className="font-semibold mb-2">What makes a challenge worth more points?</p>
+            <p className="text-muted-foreground mb-2">
+              Consider these four dimensions when comparing:
+            </p>
+            <ul className="space-y-2">
+              <li>
+                <strong>Commitment</strong> — How much sustained time, effort,
+                or consistency does this require?
+              </li>
+              <li>
+                <strong>Story Power</strong> — How likely is this to become a
+                story you tell for years? How vivid or shareable is the experience?
+              </li>
+              <li>
+                <strong>Depth</strong> — How much does this meaningfully change
+                you, your relationships, or someone else&apos;s life? Includes
+                emotional impact, personal growth, and relational significance.
+              </li>
+              <li>
+                <strong>Courage</strong> — How far outside your comfort zone is
+                this? Includes physical discomfort, social risk, emotional
+                vulnerability, and fear.
+              </li>
+            </ul>
+          </div>
+          <div>
+            <p className="font-semibold mb-1">Controls</p>
+            <ul className="text-muted-foreground space-y-1">
+              <li><strong>Arrow keys</strong> or click a card to pick a winner</li>
+              <li><strong>S</strong> to skip if you genuinely can&apos;t decide</li>
+              <li><strong>Ctrl+Z</strong> to undo your last choice</li>
+            </ul>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            There are no wrong answers — go with your gut. Every comparison helps
+            build the ranking.
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -27,8 +27,7 @@ export default async function RankingPage() {
     <div className="mx-auto max-w-3xl">
       <h1 className="text-3xl font-bold mb-2">Rank Challenges</h1>
       <p className="text-muted-foreground mb-6">
-        Which challenge is better? Pick one, or skip if you can&apos;t decide.
-        Use arrow keys or click.
+        Which challenge should be worth more points? Use arrow keys or click to pick one.
       </p>
       <RankingComparison
         challenges={challenges}
