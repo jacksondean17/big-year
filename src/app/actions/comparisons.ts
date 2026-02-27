@@ -77,8 +77,6 @@ export async function submitComparison(winnerId: number, loserId: number) {
     await supabase.from("challenges").update({ elo_score: newLoserScore }).eq("id", loserId);
   }
 
-  revalidatePath("/rank");
-
   return {
     comparison,
     newScores: {

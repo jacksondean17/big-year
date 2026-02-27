@@ -5,7 +5,7 @@ import { HoverCard, HoverCardTrigger, HoverCardContent } from "./ui/hover-card";
 
 export function RankingGuidance() {
   return (
-    <HoverCard>
+    <HoverCard defaultOpen={true}>
       <HoverCardTrigger asChild>
         <button
           className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors"

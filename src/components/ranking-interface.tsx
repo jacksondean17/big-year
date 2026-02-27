@@ -17,7 +17,6 @@ export function RankingInterface({ challenges, userComparisons: initialCompariso
   const [comparisons, setComparisons] = useState(initialComparisons);
   const [currentMatchup, setCurrentMatchup] = useState<[Challenge, Challenge] | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [selectedId, setSelectedId] = useState<number | null>(null);
 
   // Load next matchup
   useEffect(() => {
@@ -28,12 +27,12 @@ export function RankingInterface({ challenges, userComparisons: initialCompariso
       adaptiveRatio: 0.85,
     });
     setCurrentMatchup(matchup);
-  }, [comparisons, challenges, userId]);
+  }, [comparisons, userId]);
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (isPending || selectedId || !currentMatchup) return;
+      if (isPending || !currentMatchup) return;
 
       if (e.key === "ArrowLeft") {
         handlePick(currentMatchup[0].id);
@@ -44,35 +43,28 @@ export function RankingInterface({ challenges, userComparisons: initialCompariso
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [currentMatchup, isPending, selectedId]);
+  }, [currentMatchup, isPending]);
 
   const stats = getUserComparisonStats(comparisons, challenges.length);
 
   const handlePick = (winnerId: number) => {
-    if (!currentMatchup || isPending || selectedId) return;
+    if (!currentMatchup || isPending) return;
 
     const loserId = currentMatchup[0].id === winnerId ? currentMatchup[1].id : currentMatchup[0].id;
 
-    // Show selection animation
-    setSelectedId(winnerId);
+    // Submit immediately
+    startTransition(async () => {
+      try {
+        const result = await submitComparison(winnerId, loserId);
 
-    // Wait for animation, then submit
-    setTimeout(() => {
-      startTransition(async () => {
-        try {
-          const result = await submitComparison(winnerId, loserId);
+        // Add to local state
+        setComparisons((prev) => [result.comparison, ...prev]);
 
-          // Add to local state
-          setComparisons((prev) => [result.comparison, ...prev]);
-          setSelectedId(null);
-
-          // Next matchup will load via useEffect
-        } catch (error) {
-          console.error("Failed to submit comparison:", error);
-          setSelectedId(null);
-        }
-      });
-    }, 600); // Match animation duration
+        // Next matchup will load via useEffect
+      } catch (error) {
+        console.error("Failed to submit comparison:", error);
+      }
+    });
   };
 
   if (!currentMatchup) {
@@ -98,18 +90,14 @@ export function RankingInterface({ challenges, userComparisons: initialCompariso
         <RankingCard
           challenge={currentMatchup[0]}
           onPick={handlePick}
-          isSelected={selectedId === currentMatchup[0].id}
-          isOtherSelected={selectedId === currentMatchup[1].id}
-          disabled={isPending || selectedId !== null}
+          disabled={isPending}
           keyboardHint="←"
         />
 
         <RankingCard
           challenge={currentMatchup[1]}
           onPick={handlePick}
-          isSelected={selectedId === currentMatchup[1].id}
-          isOtherSelected={selectedId === currentMatchup[0].id}
-          disabled={isPending || selectedId !== null}
+          disabled={isPending}
           keyboardHint="→"
         />
       </div>
