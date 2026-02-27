@@ -101,9 +101,9 @@ export default async function ChallengePage({
               <span>Submitted by {submitterProfile ? submitterProfile.display_name : challenge.submitted_by}</span>
             </div>
           )}
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
             <CardTitle className="text-2xl">{challenge.title}</CardTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <VoteButton
                 challengeId={challenge.id}
                 initialUpvotes={voteData.upvotes}
