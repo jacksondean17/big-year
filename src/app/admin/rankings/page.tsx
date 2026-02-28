@@ -2,28 +2,13 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getChallenges } from "@/lib/challenges";
 import { computeBradleyTerry } from "@/lib/bradley-terry";
+import { getAllComparisonPairs } from "@/lib/comparisons";
+import { getAppSetting } from "@/lib/settings";
 import { Button } from "@/components/ui/button";
+import { TemperatureControl } from "./temperature-control";
 
 export default async function AdminRankingsPage() {
   const supabase = await createClient();
-
-  // Fetch all comparisons for BT (lightweight: only IDs + response time, paginated past 1000 limit)
-  async function getAllComparisonPairs() {
-    const all: { user_id: string; winner_id: number; loser_id: number; response_time_ms: number | null; created_at: string }[] = [];
-    let offset = 0;
-    const PAGE = 1000;
-    while (true) {
-      const { data } = await supabase
-        .from("challenge_comparisons")
-        .select("user_id, winner_id, loser_id, response_time_ms, created_at")
-        .range(offset, offset + PAGE - 1);
-      if (!data || data.length === 0) break;
-      all.push(...data);
-      if (data.length < PAGE) break;
-      offset += PAGE;
-    }
-    return all;
-  }
 
   const [
     challenges,
@@ -33,6 +18,7 @@ export default async function AdminRankingsPage() {
     { count: skippedCount },
     { data: comparisonCounts },
     { data: profiles },
+    temperatureSetting,
   ] = await Promise.all([
     getChallenges(),
     getAllComparisonPairs(),
@@ -54,8 +40,10 @@ export default async function AdminRankingsPage() {
     supabase
       .from("profiles")
       .select("id, display_name, guild_nickname"),
+    getAppSetting("ranking_temperature"),
   ]);
 
+  const currentTemperature = temperatureSetting ? parseFloat(temperatureSetting) : 1.5;
   const challengeMap = new Map(challenges.map((c) => [c.id, c]));
   const profileMap = new Map(
     (profiles ?? []).map((p) => [p.id, (p.guild_nickname ?? p.display_name) as string])
@@ -198,6 +186,9 @@ export default async function AdminRankingsPage() {
           <Link href="/admin">Back</Link>
         </Button>
       </div>
+
+      {/* Pair Selection Temperature */}
+      <TemperatureControl initialValue={currentTemperature} />
 
       {/* Progress toward stable ranking */}
       <section>

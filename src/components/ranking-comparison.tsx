@@ -36,12 +36,16 @@ interface Props {
   challenges: Challenge[];
   judgedPairs: [number, number][];
   skippedPairs: [number, number][];
+  btScores: Record<number, number>;
+  temperature: number;
 }
 
 export function RankingComparison({
   challenges,
   judgedPairs,
   skippedPairs,
+  btScores,
+  temperature,
 }: Props) {
   const [usedPairs, setUsedPairs] = useState<Set<PairKey>>(() => {
     const set = new Set<PairKey>();
@@ -79,32 +83,74 @@ export function RankingComparison({
   const pickRandomPair = useCallback((): [Challenge, Challenge] | null => {
     if (challengeIds.length < 2) return null;
 
-    // Try random sampling first (efficient when pool is large)
-    for (let attempt = 0; attempt < 100; attempt++) {
-      const i = Math.floor(Math.random() * challengeIds.length);
-      let j = Math.floor(Math.random() * (challengeIds.length - 1));
-      if (j >= i) j++;
-      const key = makePairKey(challengeIds[i], challengeIds[j]);
-      if (!usedPairs.has(key)) {
-        return [challengeMap.get(challengeIds[i])!, challengeMap.get(challengeIds[j])!];
-      }
-    }
+    // Check if we have any BT scores (cold start detection)
+    const hasBtScores = Object.keys(btScores).length > 0;
 
-    // Fallback: exhaustive search
-    for (let i = 0; i < challengeIds.length; i++) {
-      for (let j = i + 1; j < challengeIds.length; j++) {
+    if (!hasBtScores || !isFinite(temperature) || temperature <= 0) {
+      // Cold start or invalid temperature: uniform random (original behavior)
+      for (let attempt = 0; attempt < 100; attempt++) {
+        const i = Math.floor(Math.random() * challengeIds.length);
+        let j = Math.floor(Math.random() * (challengeIds.length - 1));
+        if (j >= i) j++;
         const key = makePairKey(challengeIds[i], challengeIds[j]);
         if (!usedPairs.has(key)) {
-          // Randomize left/right
-          return Math.random() < 0.5
-            ? [challengeMap.get(challengeIds[i])!, challengeMap.get(challengeIds[j])!]
-            : [challengeMap.get(challengeIds[j])!, challengeMap.get(challengeIds[i])!];
+          return [challengeMap.get(challengeIds[i])!, challengeMap.get(challengeIds[j])!];
         }
+      }
+      // Fallback: exhaustive
+      for (let i = 0; i < challengeIds.length; i++) {
+        for (let j = i + 1; j < challengeIds.length; j++) {
+          const key = makePairKey(challengeIds[i], challengeIds[j]);
+          if (!usedPairs.has(key)) {
+            return Math.random() < 0.5
+              ? [challengeMap.get(challengeIds[i])!, challengeMap.get(challengeIds[j])!]
+              : [challengeMap.get(challengeIds[j])!, challengeMap.get(challengeIds[i])!];
+          }
+        }
+      }
+      return null;
+    }
+
+    // Adaptive pair selection: weight by BT score closeness
+    // weight = exp(-|ln(θ_i) - ln(θ_j)| / temperature)
+    const candidates: { i: number; j: number; weight: number }[] = [];
+    let totalWeight = 0;
+
+    for (let ii = 0; ii < challengeIds.length; ii++) {
+      for (let jj = ii + 1; jj < challengeIds.length; jj++) {
+        const key = makePairKey(challengeIds[ii], challengeIds[jj]);
+        if (usedPairs.has(key)) continue;
+
+        const scoreI = btScores[challengeIds[ii]] ?? 1;
+        const scoreJ = btScores[challengeIds[jj]] ?? 1;
+        const diff = Math.abs(Math.log(scoreI) - Math.log(scoreJ));
+        const weight = Math.exp(-diff / temperature);
+
+        candidates.push({ i: ii, j: jj, weight });
+        totalWeight += weight;
       }
     }
 
-    return null;
-  }, [challengeIds, challengeMap, usedPairs]);
+    if (candidates.length === 0) return null;
+
+    // Weighted random sampling
+    let r = Math.random() * totalWeight;
+    for (const c of candidates) {
+      r -= c.weight;
+      if (r <= 0) {
+        // Randomize left/right
+        return Math.random() < 0.5
+          ? [challengeMap.get(challengeIds[c.i])!, challengeMap.get(challengeIds[c.j])!]
+          : [challengeMap.get(challengeIds[c.j])!, challengeMap.get(challengeIds[c.i])!];
+      }
+    }
+
+    // Floating point fallback: pick last candidate
+    const last = candidates[candidates.length - 1];
+    return Math.random() < 0.5
+      ? [challengeMap.get(challengeIds[last.i])!, challengeMap.get(challengeIds[last.j])!]
+      : [challengeMap.get(challengeIds[last.j])!, challengeMap.get(challengeIds[last.i])!];
+  }, [challengeIds, challengeMap, usedPairs, btScores, temperature]);
 
   const startAfkTimer = useCallback(() => {
     if (afkTimerRef.current) clearTimeout(afkTimerRef.current);

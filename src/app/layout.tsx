@@ -89,10 +89,10 @@ export default function RootLayout({
               </Link>
               <span className="text-border shrink-0">|</span>
               <Link
-                href="/ranking"
+                href="/point-judge"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0"
               >
-                Ranking
+                Point Judge
               </Link>
               <AuthButton />
             </nav>

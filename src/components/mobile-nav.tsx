@@ -52,11 +52,11 @@ export function MobileNav() {
             Leaderboard
           </Link>
           <Link
-            href="/ranking"
+            href="/point-judge"
             className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors"
             onClick={() => setOpen(false)}
           >
-            Ranking
+            Point Judge
           </Link>
           <div className="border-t border-border pt-4 mt-2">
             <AuthButton />
