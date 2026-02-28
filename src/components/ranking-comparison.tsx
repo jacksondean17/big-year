@@ -429,11 +429,6 @@ function ComparisonCard({
             <Badge variant="outline" className="text-xs">
               {challenge.category}
             </Badge>
-            <span className="ml-auto inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-sm font-semibold text-amber-800">
-              {challenge.points != null
-                ? `${challenge.points} pts`
-                : "— pts"}
-            </span>
           </div>
         </CardHeader>
         <CardContent>
