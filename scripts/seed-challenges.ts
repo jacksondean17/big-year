@@ -28,8 +28,12 @@ const FILLER_NAMES = [
   "Zane", "Jade", "Kyle", "Luna", "Max",
 ];
 
+// Stable UUID so Alice can be referenced in .env files (e.g. ADMIN_USER_IDS)
+const ALICE_ADMIN_UUID = "a11ce000-0000-0000-0000-000000000000";
+
 const TEST_USERS = [
   {
+    id: ALICE_ADMIN_UUID,
     email: "alice@example.com",
     password: "password123",
     display_name: "Alice Adventure",
@@ -157,6 +161,7 @@ async function seedUsers(): Promise<string[]> {
   for (const user of TEST_USERS) {
     // Create user via admin API
     const { data, error } = await supabase.auth.admin.createUser({
+      ...("id" in user && user.id ? { id: user.id } : {}),
       email: user.email,
       password: user.password,
       email_confirm: true,
@@ -512,11 +517,63 @@ async function seedCompletions(userIds: string[], challengeIds: number[]) {
   }
 }
 
+async function seedComparisons(userIds: string[], challengeIds: number[]) {
+  if (userIds.length === 0 || challengeIds.length === 0) return;
+
+  console.log("\nSeeding comparisons (higher ID wins)...");
+
+  // Clear existing comparison data
+  await supabase.from("skipped_comparisons").delete().gte("id", 0);
+  await supabase.from("challenge_comparisons").delete().gte("id", 0);
+
+  const TARGET = 5000;
+  const sorted = [...challengeIds].sort((a, b) => a - b);
+
+  // Build all possible pairs
+  const allPairs: [number, number][] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    for (let j = i + 1; j < sorted.length; j++) {
+      allPairs.push([sorted[i], sorted[j]]);
+    }
+  }
+
+  // Shuffle and take up to TARGET pairs
+  for (let i = allPairs.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [allPairs[i], allPairs[j]] = [allPairs[j], allPairs[i]];
+  }
+  const selected = allPairs.slice(0, TARGET);
+
+  // Build rows: higher ID always wins, spread across users
+  const rows = selected.map(([a, b], i) => ({
+    user_id: userIds[i % userIds.length],
+    winner_id: Math.max(a, b),
+    loser_id: Math.min(a, b),
+  }));
+
+  // Insert in batches of 500 (Supabase row limit)
+  const BATCH = 500;
+  let inserted = 0;
+  for (let i = 0; i < rows.length; i += BATCH) {
+    const batch = rows.slice(i, i + BATCH);
+    const { error } = await supabase
+      .from("challenge_comparisons")
+      .insert(batch);
+    if (error) {
+      console.error(`  Error inserting batch at ${i}:`, error.message);
+      break;
+    }
+    inserted += batch.length;
+  }
+  console.log(`  Inserted ${inserted} comparisons across ${userIds.length} judges`);
+}
+
 async function seed() {
   const challengeIds = await seedChallenges();
   const userIds = await seedUsers();
   await seedUserData(userIds, challengeIds);
   await seedCompletions(userIds, challengeIds);
+  await seedComparisons(userIds, challengeIds);
   console.log("\nSeeding complete!");
 }
 

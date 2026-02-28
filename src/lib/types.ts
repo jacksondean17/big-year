@@ -117,6 +117,22 @@ export interface CommentVoteData {
   vote_type: 1 | -1;
 }
 
+export interface ChallengeComparison {
+  id: string;
+  user_id: string;
+  winner_id: number;
+  loser_id: number;
+  created_at: string;
+}
+
+export interface SkippedComparison {
+  id: string;
+  user_id: string;
+  challenge_a_id: number;
+  challenge_b_id: number;
+  created_at: string;
+}
+
 export interface ChallengeCompleter {
   user_id: string;
   status: CompletionStatus;
