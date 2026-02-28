@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 
-export async function submitComparison(winnerId: number, loserId: number) {
+export async function submitComparison(winnerId: number, loserId: number, responseTimeMs?: number) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -15,6 +15,7 @@ export async function submitComparison(winnerId: number, loserId: number) {
     user_id: user.id,
     winner_id: winnerId,
     loser_id: loserId,
+    ...(responseTimeMs != null && { response_time_ms: responseTimeMs }),
   });
 
   if (error) throw error;
@@ -22,7 +23,8 @@ export async function submitComparison(winnerId: number, loserId: number) {
 
 export async function skipComparison(
   challengeAId: number,
-  challengeBId: number
+  challengeBId: number,
+  responseTimeMs?: number
 ) {
   const supabase = await createClient();
   const {
@@ -38,6 +40,7 @@ export async function skipComparison(
     user_id: user.id,
     challenge_a_id: a,
     challenge_b_id: b,
+    ...(responseTimeMs != null && { response_time_ms: responseTimeMs }),
   });
 
   if (error) throw error;

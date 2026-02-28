@@ -7,15 +7,15 @@ import { Button } from "@/components/ui/button";
 export default async function AdminRankingsPage() {
   const supabase = await createClient();
 
-  // Fetch all comparisons for BT (lightweight: only IDs, paginated past 1000 limit)
+  // Fetch all comparisons for BT (lightweight: only IDs + response time, paginated past 1000 limit)
   async function getAllComparisonPairs() {
-    const all: { user_id: string; winner_id: number; loser_id: number }[] = [];
+    const all: { user_id: string; winner_id: number; loser_id: number; response_time_ms: number | null; created_at: string }[] = [];
     let offset = 0;
     const PAGE = 1000;
     while (true) {
       const { data } = await supabase
         .from("challenge_comparisons")
-        .select("user_id, winner_id, loser_id")
+        .select("user_id, winner_id, loser_id, response_time_ms, created_at")
         .range(offset, offset + PAGE - 1);
       if (!data || data.length === 0) break;
       all.push(...data);
@@ -63,15 +63,93 @@ export default async function AdminRankingsPage() {
   const totalComparisons = allComparisons.length;
   const totalSkipped = skippedCount ?? 0;
   const totalPairs = (challenges.length * (challenges.length - 1)) / 2;
+  const totalItems = challenges.length;
 
-  // Judge stats: comparisons per user
+  // Targets based on O(N log N) BT convergence theory
+  // Each comparison covers 2 items, so total = N * perItem / 2
+  const logN = totalItems > 1 ? Math.log2(totalItems) : 1;
+  const tiers = {
+    minimum: { perItem: Math.round(logN), total: Math.round(totalItems * logN / 2), label: "Minimum" },
+    good:    { perItem: Math.round(3 * logN), total: Math.round(totalItems * 3 * logN / 2), label: "Good" },
+    great:   { perItem: Math.round(5 * logN), total: Math.round(totalItems * 5 * logN / 2), label: "Great" },
+  };
+  const avgComparisonsPerItem = totalItems > 0 ? (totalComparisons * 2) / totalItems : 0;
+
+  // Judge stats: comparisons per user + response time arrays
   const judgeCounts = new Map<string, number>();
+  const judgeTimes = new Map<string, number[]>();
   for (const row of allComparisons) {
     judgeCounts.set(row.user_id, (judgeCounts.get(row.user_id) ?? 0) + 1);
+    if (row.response_time_ms != null) {
+      const arr = judgeTimes.get(row.user_id) ?? [];
+      arr.push(row.response_time_ms);
+      judgeTimes.set(row.user_id, arr);
+    }
   }
   const uniqueJudges = judgeCounts.size;
   const judgeList = [...judgeCounts.entries()]
     .sort((a, b) => b[1] - a[1]);
+
+  // Global response time stats
+  const allResponseTimes = allComparisons
+    .map((c) => c.response_time_ms)
+    .filter((t): t is number => t != null)
+    .sort((a, b) => a - b);
+  const medianDecisionMs = median(allResponseTimes);
+  const decisionsPerMinute = medianDecisionMs != null && medianDecisionMs > 0
+    ? 60000 / medianDecisionMs
+    : null;
+
+  // Remaining & time estimates (based on "good" tier)
+  const remaining = Math.max(0, tiers.good.total - totalComparisons);
+  const estRemainingMs = medianDecisionMs != null ? remaining * medianDecisionMs : null;
+  const perJudgeRemaining = uniqueJudges > 0 ? Math.ceil(remaining / uniqueJudges) : remaining;
+  const perJudgeRemainingMs = medianDecisionMs != null ? perJudgeRemaining * medianDecisionMs : null;
+  const sessionsLeft = perJudgeRemainingMs != null ? perJudgeRemainingMs / (15 * 60 * 1000) : null;
+  const decisionsPerSession = medianDecisionMs != null && medianDecisionMs > 0
+    ? Math.round((15 * 60 * 1000) / medianDecisionMs)
+    : null;
+
+  // Active judges (compared in last 24h)
+  const now = new Date();
+  const activeJudgeIds = new Set<string>();
+  for (const row of allComparisons) {
+    if (now.getTime() - new Date(row.created_at).getTime() < 24 * 60 * 60 * 1000) {
+      activeJudgeIds.add(row.user_id);
+    }
+  }
+
+  // Item coverage
+  const seenItems = new Set<number>();
+  const itemCompCounts = new Map<number, number>();
+  for (const row of allComparisons) {
+    seenItems.add(row.winner_id);
+    seenItems.add(row.loser_id);
+    itemCompCounts.set(row.winner_id, (itemCompCounts.get(row.winner_id) ?? 0) + 1);
+    itemCompCounts.set(row.loser_id, (itemCompCounts.get(row.loser_id) ?? 0) + 1);
+  }
+  const itemCompValues = [...itemCompCounts.values()].sort((a, b) => a - b);
+  const medianCompsPerItem = median(itemCompValues);
+  const minCompsPerItem = itemCompValues.length > 0 ? itemCompValues[0] : 0;
+  const maxCompsPerItem = itemCompValues.length > 0 ? itemCompValues[itemCompValues.length - 1] : 0;
+
+  // Per-challenge avg response time (across all comparisons involving that challenge)
+  const challengeTimeSums = new Map<number, { sum: number; count: number }>();
+  for (const row of allComparisons) {
+    if (row.response_time_ms == null) continue;
+    for (const cid of [row.winner_id, row.loser_id]) {
+      const prev = challengeTimeSums.get(cid) ?? { sum: 0, count: 0 };
+      prev.sum += row.response_time_ms;
+      prev.count += 1;
+      challengeTimeSums.set(cid, prev);
+    }
+  }
+
+  // Decision time chart data: chronological comparisons with response times
+  const decisionTimeData = allComparisons
+    .filter((c) => c.response_time_ms != null)
+    .sort((a, b) => a.created_at.localeCompare(b.created_at))
+    .map((c, i) => ({ index: i + 1, timeMs: c.response_time_ms! }));
 
   // Compute Bradley-Terry scores
   const btResult = computeBradleyTerry(
@@ -121,24 +199,117 @@ export default async function AdminRankingsPage() {
         </Button>
       </div>
 
-      {/* Summary stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <StatCard label="Total Comparisons" value={totalComparisons} />
-        <StatCard label="Skipped Pairs" value={totalSkipped} />
-        <StatCard label="Unique Judges" value={uniqueJudges} />
-        <StatCard
-          label="Pair Coverage"
-          value={`${(((totalComparisons + totalSkipped) / totalPairs) * 100).toFixed(1)}%`}
-        />
-        <StatCard
-          label="BT Iterations"
-          value={btResult.iterations}
-        />
-      </div>
+      {/* Progress toward stable ranking */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-semibold">Progress toward stable ranking</h3>
+          <p className="text-xs text-muted-foreground">
+            ~{avgComparisonsPerItem.toFixed(1)} comparisons per item &middot; {totalComparisons} total
+          </p>
+        </div>
+        <div className="space-y-2">
+          {([tiers.minimum, tiers.good, tiers.great] as const).map((tier) => {
+            const pct = tier.total > 0 ? Math.min(100, (totalComparisons / tier.total) * 100) : 0;
+            const done = totalComparisons >= tier.total;
+            return (
+              <div key={tier.label}>
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-xs font-medium">
+                    {tier.label}{" "}
+                    <span className="text-muted-foreground font-normal">~{tier.perItem}/item &middot; {tier.total} total</span>
+                  </span>
+                  <span className="text-xs font-mono">
+                    {done ? (
+                      <span className="text-green-600">Done</span>
+                    ) : (
+                      <>{totalComparisons} / {tier.total}</>
+                    )}
+                  </span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      done ? "bg-green-500" : "bg-amber-500"
+                    }`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Timing & Feasibility */}
+      <section>
+        <h3 className="text-lg font-semibold mb-3">Timing &amp; Feasibility</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard
+            label="Median per decision"
+            value={medianDecisionMs != null ? `${(medianDecisionMs / 1000).toFixed(1)}s` : "—"}
+          />
+          <StatCard
+            label="Decisions / minute"
+            value={decisionsPerMinute != null ? decisionsPerMinute.toFixed(1) : "—"}
+          />
+          <StatCard
+            label="Remaining"
+            sub={`of ${tiers.good.total} total`}
+            value={remaining}
+          />
+          <StatCard
+            label="Est. time remaining"
+            sub="across all judges"
+            value={estRemainingMs != null ? formatDuration(estRemainingMs) : "—"}
+          />
+          <StatCard
+            label="Per judge remaining"
+            sub={perJudgeRemainingMs != null ? `~${formatDuration(perJudgeRemainingMs)} each` : undefined}
+            value={perJudgeRemaining}
+          />
+          <StatCard
+            label="15-min sessions left"
+            sub={decisionsPerSession != null ? `~${decisionsPerSession} decisions/session` : undefined}
+            value={sessionsLeft != null ? sessionsLeft.toFixed(1) : "—"}
+          />
+          <StatCard
+            label="Active judges"
+            sub={`of ${uniqueJudges} total`}
+            value={activeJudgeIds.size}
+          />
+        </div>
+      </section>
+
+      {/* Item Coverage */}
+      <section>
+        <h3 className="text-lg font-semibold mb-3">Item Coverage</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard label="Total items" value={totalItems} />
+          <StatCard
+            label="Items seen"
+            sub={`${totalItems > 0 ? ((seenItems.size / totalItems) * 100).toFixed(0) : 0}% coverage`}
+            value={`${seenItems.size} / ${totalItems}`}
+          />
+          <StatCard
+            label="Comparisons per item"
+            sub={itemCompValues.length > 0 ? `median · range ${minCompsPerItem}–${maxCompsPerItem}` : undefined}
+            value={medianCompsPerItem != null ? medianCompsPerItem : "—"}
+          />
+          <StatCard
+            label="BT Iterations"
+            value={btResult.iterations}
+          />
+        </div>
+      </section>
 
       {/* BT Score Distribution Chart */}
       {rankedChallenges.length > 0 && (
         <BtChart challenges={rankedChallenges} />
+      )}
+
+      {/* Decision Time Chart */}
+      {decisionTimeData.length > 0 && (
+        <DecisionTimeChart data={decisionTimeData} />
       )}
 
       {/* Challenge rankings by BT score */}
@@ -194,6 +365,7 @@ export default async function AdminRankingsPage() {
                 <th className="px-4 py-3 font-medium text-right">W</th>
                 <th className="px-4 py-3 font-medium text-right">L</th>
                 <th className="px-4 py-3 font-medium text-right">Win %</th>
+                <th className="px-4 py-3 font-medium text-right">Avg Time</th>
               </tr>
             </thead>
             <tbody>
@@ -219,12 +391,18 @@ export default async function AdminRankingsPage() {
                   <td className="px-4 py-2 text-right font-mono">
                     {(c.winRate * 100).toFixed(1)}%
                   </td>
+                  <td className="px-4 py-2 text-right font-mono text-muted-foreground">
+                    {(() => {
+                      const ts = challengeTimeSums.get(c.id);
+                      return ts ? `${(ts.sum / ts.count / 1000).toFixed(1)}s` : "—";
+                    })()}
+                  </td>
                 </tr>
               ))}
               {rankedChallenges.length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-4 py-8 text-center text-muted-foreground"
                   >
                     No comparisons yet
@@ -236,32 +414,55 @@ export default async function AdminRankingsPage() {
         </div>
       </section>
 
-      {/* Judge activity */}
+      {/* Judge Participation */}
       <section>
-        <h3 className="text-lg font-semibold mb-3">Judge Activity</h3>
+        <h3 className="text-lg font-semibold mb-3">Judge Participation</h3>
         <div className="rounded-lg border overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50 text-left">
                 <th className="px-4 py-3 font-medium">Judge</th>
-                <th className="px-4 py-3 font-medium text-right">
-                  Comparisons
-                </th>
+                <th className="px-4 py-3 font-medium w-48"></th>
+                <th className="px-4 py-3 font-medium text-right">Count</th>
+                <th className="px-4 py-3 font-medium text-right">Share</th>
+                <th className="px-4 py-3 font-medium text-right">Median</th>
+                <th className="px-4 py-3 font-medium text-right">Rate</th>
               </tr>
             </thead>
             <tbody>
-              {judgeList.map(([userId, count], i) => (
-                <tr
-                  key={userId}
-                  className={i % 2 === 0 ? "bg-card" : "bg-muted/20"}
-                >
-                  <td className="px-4 py-2">
-                    {profileMap.get(userId) ?? "Unknown"}
-                    <span className="ml-2 font-mono text-xs text-muted-foreground opacity-50">{userId.slice(0, 8)}</span>
-                  </td>
-                  <td className="px-4 py-2 text-right">{count}</td>
-                </tr>
-              ))}
+              {judgeList.map(([userId, count], i) => {
+                const times = judgeTimes.get(userId);
+                const med = times ? median([...times].sort((a, b) => a - b)) : null;
+                const rate = med != null && med > 0 ? 60000 / med : null;
+                const share = totalComparisons > 0 ? (count / totalComparisons) * 100 : 0;
+                return (
+                  <tr
+                    key={userId}
+                    className={i % 2 === 0 ? "bg-card" : "bg-muted/20"}
+                  >
+                    <td className="px-4 py-2">
+                      {profileMap.get(userId) ?? "Unknown"}
+                      <span className="ml-2 font-mono text-xs text-muted-foreground opacity-50">{userId.slice(0, 8)}</span>
+                    </td>
+                    <td className="px-4 py-2">
+                      <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-amber-500"
+                          style={{ width: `${share}%` }}
+                        />
+                      </div>
+                    </td>
+                    <td className="px-4 py-2 text-right font-mono">{count}</td>
+                    <td className="px-4 py-2 text-right font-mono">{share.toFixed(0)}%</td>
+                    <td className="px-4 py-2 text-right font-mono text-muted-foreground">
+                      {med != null ? `${(med / 1000).toFixed(1)}s` : "—"}
+                    </td>
+                    <td className="px-4 py-2 text-right font-mono text-muted-foreground">
+                      {rate != null ? `${rate.toFixed(1)}/m` : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -392,18 +593,140 @@ export default async function AdminRankingsPage() {
   );
 }
 
+function median(sorted: number[]): number | null {
+  if (sorted.length === 0) return null;
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? (sorted[mid - 1] + sorted[mid]) / 2
+    : sorted[mid];
+}
+
+function formatDuration(ms: number): string {
+  const totalSeconds = Math.round(ms / 1000);
+  if (totalSeconds < 60) return `${totalSeconds}s`;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (minutes < 60) return `${minutes}m ${seconds}s`;
+  const hours = Math.floor(minutes / 60);
+  const remainMinutes = minutes % 60;
+  return `${hours}h ${remainMinutes}m`;
+}
+
 function StatCard({
   label,
   value,
+  sub,
 }: {
   label: string;
   value: string | number;
+  sub?: string;
 }) {
   return (
     <div className="rounded-lg border bg-card p-4">
-      <p className="text-xs text-muted-foreground">{label}</p>
       <p className="text-2xl font-bold">{value}</p>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      {sub && <p className="text-xs text-muted-foreground/60">{sub}</p>}
     </div>
+  );
+}
+
+function DecisionTimeChart({
+  data,
+}: {
+  data: { index: number; timeMs: number }[];
+}) {
+  const W = 800;
+  const H = 320;
+  const PAD = { top: 20, right: 20, bottom: 40, left: 60 };
+  const plotW = W - PAD.left - PAD.right;
+  const plotH = H - PAD.top - PAD.bottom;
+
+  // Cap at 60s for display to avoid outliers blowing up the scale
+  const cappedData = data.map((d) => ({ ...d, timeSec: Math.min(d.timeMs / 1000, 60) }));
+  const maxTime = Math.ceil(Math.max(...cappedData.map((d) => d.timeSec)));
+  const yRange = maxTime || 1;
+  const maxIndex = data[data.length - 1].index;
+
+  const points = cappedData.map((d) => ({
+    x: PAD.left + ((d.index - 1) / (maxIndex - 1 || 1)) * plotW,
+    y: PAD.top + plotH - (d.timeSec / yRange) * plotH,
+    index: d.index,
+    timeSec: d.timeSec,
+    originalMs: d.timeMs,
+  }));
+
+  // Y-axis ticks
+  const yStep = maxTime <= 10 ? 2 : maxTime <= 30 ? 5 : 10;
+  const yTicks: number[] = [];
+  for (let v = 0; v <= maxTime; v += yStep) yTicks.push(v);
+
+  // X-axis ticks
+  const xTickInterval = Math.max(1, Math.floor(maxIndex / 10));
+  const xTicks: number[] = [];
+  for (let i = 1; i <= maxIndex; i += xTickInterval) xTicks.push(i);
+  if (xTicks[xTicks.length - 1] !== maxIndex) xTicks.push(maxIndex);
+
+  return (
+    <section>
+      <h3 className="text-lg font-semibold mb-1">
+        Decision Time vs Comparison #
+      </h3>
+      <p className="text-xs text-muted-foreground mb-3">
+        How long each comparison took (capped at 60s) — chronological order across all judges
+      </p>
+      <div className="rounded-lg border bg-card p-4 overflow-x-auto">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-3xl" style={{ minWidth: 400 }}>
+          {/* Grid lines */}
+          {yTicks.map((v) => {
+            const y = PAD.top + plotH - (v / yRange) * plotH;
+            return (
+              <g key={`y-${v}`}>
+                <line
+                  x1={PAD.left} y1={y} x2={W - PAD.right} y2={y}
+                  stroke="currentColor" strokeOpacity={0.1}
+                />
+                <text x={PAD.left - 8} y={y + 4} textAnchor="end" fontSize={11} fill="currentColor" opacity={0.5}>
+                  {v}s
+                </text>
+              </g>
+            );
+          })}
+
+          {/* X-axis ticks */}
+          {xTicks.map((idx) => {
+            const x = PAD.left + ((idx - 1) / (maxIndex - 1 || 1)) * plotW;
+            return (
+              <text
+                key={`x-${idx}`}
+                x={x} y={H - 8}
+                textAnchor="middle" fontSize={11} fill="currentColor" opacity={0.5}
+              >
+                {idx}
+              </text>
+            );
+          })}
+
+          {/* Axis labels */}
+          <text x={PAD.left - 8} y={12} textAnchor="end" fontSize={11} fill="currentColor" opacity={0.6}>
+            Time
+          </text>
+          <text x={W / 2} y={H - 0} textAnchor="middle" fontSize={11} fill="currentColor" opacity={0.6}>
+            Comparison #
+          </text>
+
+          {/* Dots */}
+          {points.map((p) => (
+            <circle
+              key={p.index}
+              cx={p.x} cy={p.y} r={data.length > 200 ? 2 : 3}
+              fill="hsl(200, 70%, 55%)" opacity={0.7}
+            >
+              <title suppressHydrationWarning>#{p.index} — {(p.originalMs / 1000).toFixed(1)}s</title>
+            </circle>
+          ))}
+        </svg>
+      </div>
+    </section>
   );
 }
 
@@ -506,7 +829,7 @@ function BtChart({
               cx={p.x} cy={p.y} r={challenges.length > 80 ? 2 : 3}
               fill="hsl(45, 80%, 55%)"
             >
-              <title>#{p.rank} {p.title} — ln(θ)={p.logScore.toFixed(2)}</title>
+              <title suppressHydrationWarning>#{p.rank} {p.title} — ln(θ)={p.logScore.toFixed(2)}</title>
             </circle>
           ))}
         </svg>

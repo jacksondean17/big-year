@@ -55,11 +55,11 @@ export function RankingComparison({
   const [busy, setBusy] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [autoRunning, setAutoRunning] = useState(false);
-  const [showGuide, setShowGuide] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return !localStorage.getItem("ranking-guide-seen");
-  });
+  const [showGuide, setShowGuide] = useState(true);
+  const [showAfkPrompt, setShowAfkPrompt] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const pairShownAt = useRef<number>(0);
+  const afkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isDev = process.env.NODE_ENV === "development";
 
   const challengeIds = useMemo(
@@ -106,12 +106,32 @@ export function RankingComparison({
     return null;
   }, [challengeIds, challengeMap, usedPairs]);
 
-  // Pick initial pair
+  const startAfkTimer = useCallback(() => {
+    if (afkTimerRef.current) clearTimeout(afkTimerRef.current);
+    setShowAfkPrompt(false);
+    afkTimerRef.current = setTimeout(() => {
+      setShowAfkPrompt(true);
+    }, 30000);
+  }, []);
+
+  // Clean up AFK timer on unmount
+  useEffect(() => {
+    return () => {
+      if (afkTimerRef.current) clearTimeout(afkTimerRef.current);
+    };
+  }, []);
+
+  // Pick initial pair and reset timer when pair changes
   useEffect(() => {
     if (!currentPair) {
       setCurrentPair(pickRandomPair());
     }
-  }, [currentPair, pickRandomPair]);
+    // Only start timer if guide is closed
+    if (!showGuide) {
+      pairShownAt.current = Date.now();
+      startAfkTimer();
+    }
+  }, [currentPair, pickRandomPair, showGuide, startAfkTimer]);
 
   const handlePick = useCallback(
     (side: "left" | "right") => {
@@ -136,7 +156,8 @@ export function RankingComparison({
       }, 350);
 
       // Fire-and-forget server action
-      submitComparison(winner.id, loser.id).catch((err) =>
+      const responseTimeMs = Date.now() - pairShownAt.current;
+      submitComparison(winner.id, loser.id, responseTimeMs).catch((err) =>
         console.error("Failed to submit comparison:", err)
       );
     },
@@ -154,7 +175,8 @@ export function RankingComparison({
     setCurrentPair(null);
 
     // Fire-and-forget server action
-    skipComparison(left.id, right.id).catch((err) =>
+    const responseTimeMs = Date.now() - pairShownAt.current;
+    skipComparison(left.id, right.id, responseTimeMs).catch((err) =>
       console.error("Failed to skip comparison:", err)
     );
   }, [currentPair, busy]);
@@ -307,7 +329,14 @@ export function RankingComparison({
 
       <RankingGuideDialog open={showGuide} onClose={() => {
         setShowGuide(false);
-        localStorage.setItem("ranking-guide-seen", "1");
+        pairShownAt.current = Date.now();
+        startAfkTimer();
+      }} />
+
+      <AfkPromptDialog open={showAfkPrompt} onConfirm={() => {
+        setShowAfkPrompt(false);
+        pairShownAt.current = Date.now();
+        startAfkTimer();
       }} />
     </div>
   );
@@ -388,8 +417,8 @@ function ComparisonCard({
 
 function RankingGuideDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-md">
+    <Dialog open={open} onOpenChange={() => {}}>
+      <DialogContent className="max-w-md [&>button[class*='absolute']]:hidden" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>How Challenge Ranking Works</DialogTitle>
           <DialogDescription>
@@ -439,7 +468,28 @@ function RankingGuideDialog({ open, onClose }: { open: boolean; onClose: () => v
             There are no wrong answers — go with your gut. Every comparison helps
             build the ranking.
           </p>
+          <Button onClick={onClose} className="w-full" size="lg">
+            Start Ranking
+          </Button>
         </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AfkPromptDialog({ open, onConfirm }: { open: boolean; onConfirm: () => void }) {
+  return (
+    <Dialog open={open} onOpenChange={() => {}}>
+      <DialogContent className="max-w-sm [&>button[class*='absolute']]:hidden" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle>Are you still there?</DialogTitle>
+          <DialogDescription>
+            Click below to continue ranking.
+          </DialogDescription>
+        </DialogHeader>
+        <Button onClick={onConfirm} className="w-full" size="lg">
+          I&apos;m here!
+        </Button>
       </DialogContent>
     </Dialog>
   );
