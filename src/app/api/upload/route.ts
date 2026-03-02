@@ -85,11 +85,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate storage key
-    const dotIndex = file.name.lastIndexOf(".");
-    const hasExt = dotIndex >= 0 && dotIndex < file.name.length - 1;
-    const extFromName = hasExt
-      ? file.name.slice(dotIndex + 1).toLowerCase()
-      : "";
+    const extFromName =
+      file.name.includes(".") && file.name.split(".").length > 1
+        ? file.name.split(".").pop()?.toLowerCase() || ""
+        : "";
     const isHeicByExt = HEIC_EXTENSIONS.includes(extFromName);
     const isHeicByMime = HEIC_MIME_TYPES.includes(file.type);
     const ext = isHeicByExt || isHeicByMime ? "jpg" : extFromName || "bin";
@@ -101,26 +100,19 @@ export async function POST(request: NextRequest) {
     let metadata: SharpMetadata | null = null;
 
     if (isHeicByExt || isHeicByMime) {
-      metadata = await sharp(originalBuffer)
-        .metadata()
-        .catch((err) => {
-          console.error(
-            "HEIC metadata read failed:",
-            {
-              completionId,
-              error: err instanceof Error ? err.message : err,
-            }
-          );
-          return null;
+      try {
+        metadata = await sharp(originalBuffer).metadata();
+      } catch (err) {
+        console.error("HEIC metadata read failed:", {
+          completionId,
+          error: err instanceof Error ? err.message : err,
         });
-      if (!metadata) {
         return NextResponse.json(
           { error: "Failed to process HEIC/HEIF image metadata." },
           { status: 400 }
         );
       }
-      isHeicByMetadata =
-        metadata.format === "heic" || metadata.format === "heif";
+      isHeicByMetadata = metadata.format === "heic" || metadata.format === "heif";
     }
 
     const shouldConvertHeic =
@@ -132,7 +124,7 @@ export async function POST(request: NextRequest) {
     if (shouldConvertHeic) {
       try {
         uploadBuffer = await sharp(originalBuffer)
-          // Normalize orientation: apply EXIF rotation; EXIF orientation tag is removed during JPEG encoding
+          // Normalize orientation: apply EXIF rotation when present; EXIF orientation tag is removed during JPEG encoding (no-op if none exists)
           .rotate()
           .jpeg({ quality: 85 })
           .toBuffer();
