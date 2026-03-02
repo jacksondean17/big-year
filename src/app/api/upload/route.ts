@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import sharp from "sharp";
 import { createClient } from "@/lib/supabase/server";
 import { uploadToR2, getPublicUrl, deleteFromR2 } from "@/lib/r2";
 
@@ -72,12 +73,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate storage key
-    const ext = file.name.split(".").pop() || "bin";
+    const isHeic = file.type === "image/heic" || file.type === "image/heif";
+    const ext = isHeic ? "jpg" : file.name.split(".").pop() || "bin";
     const key = `completions/${user.id}/${completionId}/${Date.now()}.${ext}`;
 
-    // Upload to R2
-    const buffer = Buffer.from(await file.arrayBuffer());
-    await uploadToR2(buffer, key, file.type);
+    // Upload to R2 (convert HEIC/HEIF to JPEG for compatibility)
+    const originalBuffer = Buffer.from(await file.arrayBuffer());
+    const uploadBuffer = isHeic
+      ? await sharp(originalBuffer).rotate().jpeg({ quality: 90 }).toBuffer()
+      : originalBuffer;
+    const uploadType = isHeic ? "image/jpeg" : file.type;
+
+    await uploadToR2(uploadBuffer, key, uploadType);
 
     const publicUrl = getPublicUrl(key);
 
@@ -88,8 +95,8 @@ export async function POST(request: NextRequest) {
         completion_id: completionId,
         storage_path: key,
         public_url: publicUrl,
-        file_type: file.type,
-        file_size: file.size,
+        file_type: uploadType,
+        file_size: uploadBuffer.length,
       })
       .select()
       .single();
