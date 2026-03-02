@@ -369,7 +369,14 @@ export default async function AdminRankingsPage() {
                   <td className="px-4 py-2 text-muted-foreground font-mono text-xs">
                     {c.id}
                   </td>
-                  <td className="px-4 py-2 font-medium">{c.title}</td>
+                  <td className="px-4 py-2 font-medium">
+                    <Link
+                      href={`/admin/rankings/${c.id}`}
+                      className="hover:underline"
+                    >
+                      {c.title}
+                    </Link>
+                  </td>
                   <td className="px-4 py-2 text-right font-mono font-semibold">
                     {Math.log(c.btScore).toFixed(2)}
                   </td>

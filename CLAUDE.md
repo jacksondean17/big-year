@@ -50,6 +50,7 @@ src/
 │   ├── schedule/page.tsx     # Embedded Google Calendar + subscribe links
 │   ├── users/page.tsx        # All users list
 │   ├── users/[id]/page.tsx   # User profile page
+│   ├── admin/rankings/[id]/  # Admin: per-challenge matchup history
 │   ├── challenges/[id]/      # Challenge detail
 │   ├── api/upload/route.ts    # Media upload/delete API (R2)
 │   ├── auth/callback/route.ts # OAuth callback + Discord sync

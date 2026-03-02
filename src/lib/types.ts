@@ -122,6 +122,7 @@ export interface ChallengeComparison {
   user_id: string;
   winner_id: number;
   loser_id: number;
+  response_time_ms?: number | null;
   created_at: string;
 }
 
