@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { getChallenges } from "@/lib/challenges";
@@ -17,9 +16,7 @@ export default async function ChallengeMatchupsPage({
   params: { id: string };
 }) {
   const challengeId = Number(params.id);
-  if (!Number.isFinite(challengeId)) {
-    notFound();
-  }
+  const isValidId = Number.isFinite(challengeId);
 
   const supabase = await createClient();
   const [challenges, { data: comparisons }, { data: profiles }] =
@@ -35,10 +32,9 @@ export default async function ChallengeMatchupsPage({
         .select("id, display_name, guild_nickname"),
     ]);
 
-  const challenge = challenges.find((c) => c.id === challengeId);
-  if (!challenge) {
-    notFound();
-  }
+  const challenge = isValidId
+    ? challenges.find((c) => c.id === challengeId)
+    : null;
 
   const challengeMap = new Map(challenges.map((c) => [c.id, c]));
   const profileMap = new Map(
@@ -46,6 +42,25 @@ export default async function ChallengeMatchupsPage({
   );
 
   const matchups = (comparisons ?? []) as ChallengeComparison[];
+
+  if (!isValidId || !challenge) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">Challenge lookup</p>
+            <h2 className="text-xl font-semibold">Challenge not found</h2>
+          </div>
+          <Button asChild size="sm" variant="outline">
+            <Link href="/admin/rankings">Back to rankings</Link>
+          </Button>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          The requested challenge could not be found.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
