@@ -86,8 +86,10 @@ export async function POST(request: NextRequest) {
 
     // Generate storage key
     const dotIndex = file.name.lastIndexOf(".");
-    const extFromName =
-      dotIndex > 0 ? file.name.slice(dotIndex + 1).toLowerCase() : "";
+    const hasExt = dotIndex >= 0 && dotIndex < file.name.length - 1;
+    const extFromName = hasExt
+      ? file.name.slice(dotIndex + 1).toLowerCase()
+      : "";
     const isHeicByExt = HEIC_EXTENSIONS.includes(extFromName);
     const isHeicByMime = HEIC_MIME_TYPES.includes(file.type);
     const ext = isHeicByExt || isHeicByMime ? "jpg" : extFromName || "bin";
@@ -104,7 +106,11 @@ export async function POST(request: NextRequest) {
         .catch((err) => {
           console.error(
             "HEIC metadata read failed:",
-            err instanceof Error ? err.message : err
+            {
+              completionId,
+              userId: user.id,
+              error: err instanceof Error ? err.message : err,
+            }
           );
           return null;
         });
@@ -115,7 +121,7 @@ export async function POST(request: NextRequest) {
         );
       }
       isHeicByMetadata =
-        metadata?.format === "heic" || metadata?.format === "heif";
+        metadata.format === "heic" || metadata.format === "heif";
     }
 
     const shouldConvertHeic =
