@@ -199,11 +199,15 @@ export function CompletionDialog({
       "image/png",
       "image/webp",
       "image/gif",
+      "image/heic",
+      "image/heif",
       "video/mp4",
       "video/quicktime",
     ];
     if (!allowedTypes.includes(file.type)) {
-      setError("File type not allowed. Use JPEG, PNG, WebP, GIF, MP4, or MOV.");
+      setError(
+        "File type not allowed. Use JPEG, PNG, WebP, GIF, HEIC, HEIF, MP4, or MOV."
+      );
       e.target.value = "";
       return;
     }
@@ -298,14 +302,14 @@ export function CompletionDialog({
                 <input
                   type="file"
                   className="hidden"
-                  accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime"
+                  accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,video/mp4,video/quicktime"
                   onChange={handleFileSelect}
                   disabled={isPending}
                 />
               </label>
             </div>
             <p className="text-xs text-muted-foreground">
-              Max 100MB. JPEG, PNG, WebP, GIF, MP4, or MOV.
+              Max 100MB. JPEG, PNG, WebP, GIF, HEIC, HEIF, MP4, or MOV.
             </p>
 
             {/* Media preview grid */}

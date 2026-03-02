@@ -10,6 +10,8 @@ const ALLOWED_TYPES = [
   "image/png",
   "image/webp",
   "image/gif",
+  "image/heic",
+  "image/heif",
   "video/mp4",
   "video/quicktime",
 ];
@@ -39,7 +41,10 @@ export async function POST(request: NextRequest) {
 
     if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
-        { error: "File type not allowed. Use JPEG, PNG, WebP, GIF, MP4, or MOV." },
+        {
+          error:
+            "File type not allowed. Use JPEG, PNG, WebP, GIF, HEIC, HEIF, MP4, or MOV.",
+        },
         { status: 400 }
       );
     }
