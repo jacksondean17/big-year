@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
     let isHeicByMetadata = false;
     let metadata: SharpMetadata | null = null;
 
-    if (isHeicByExt || isHeicByMime) {
+    if (isHeicByExt || isHeicByMime || file.type.startsWith("image/")) {
       try {
         metadata = await sharp(originalBuffer).metadata();
       } catch (err) {
@@ -110,7 +110,9 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      isHeicByMetadata = metadata.format === "heic" || metadata.format === "heif";
+      isHeicByMetadata = ["heic", "heif", "heic-sequence", "heif-sequence"].includes(
+        metadata.format ?? ""
+      );
     }
 
     const shouldConvertHeic =
