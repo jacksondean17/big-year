@@ -91,7 +91,15 @@ export async function POST(request: NextRequest) {
 
     // Upload to R2 (convert HEIC/HEIF to JPEG for compatibility)
     const originalBuffer = Buffer.from(await file.arrayBuffer());
-    const metadata = await sharp(originalBuffer).metadata().catch(() => null);
+    const metadata = await sharp(originalBuffer)
+      .metadata()
+      .catch((err) => {
+        console.error(
+          "HEIC metadata read failed:",
+          err instanceof Error ? err.message : err
+        );
+        return null;
+      });
     const isHeicDetected =
       metadata?.format === "heic" || metadata?.format === "heif";
     const shouldConvertHeic = isHeic || isHeicDetected;
@@ -108,7 +116,12 @@ export async function POST(request: NextRequest) {
           .toBuffer();
         uploadType = "image/jpeg";
       } catch (conversionError) {
-        console.error("HEIC conversion failed:", conversionError);
+        console.error(
+          "HEIC conversion failed:",
+          conversionError instanceof Error
+            ? conversionError.message
+            : conversionError
+        );
         return NextResponse.json(
           { error: "Failed to process HEIC/HEIF image." },
           { status: 400 }
