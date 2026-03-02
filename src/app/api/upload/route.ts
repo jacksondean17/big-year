@@ -6,6 +6,8 @@ import { uploadToR2, getPublicUrl, deleteFromR2 } from "@/lib/r2";
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
+type SharpMetadata = Awaited<ReturnType<typeof sharp.prototype.metadata>>;
+
 const ALLOWED_TYPES = [
   "image/jpeg",
   "image/png",
@@ -92,10 +94,9 @@ export async function POST(request: NextRequest) {
     // Upload to R2 (convert HEIC/HEIF to JPEG for compatibility)
     const originalBuffer = Buffer.from(await file.arrayBuffer());
     let isHeicByMetadata = false;
-    let metadata: Awaited<ReturnType<typeof sharp.prototype.metadata>> | null =
-      null;
+    let metadata: SharpMetadata | null = null;
 
-    if (isHeicByExt || isHeicByMime || !file.type) {
+    if (isHeicByExt || isHeicByMime) {
       metadata = await sharp(originalBuffer)
         .metadata()
         .catch((err) => {
@@ -149,7 +150,7 @@ export async function POST(request: NextRequest) {
         storage_path: key,
         public_url: publicUrl,
         file_type: uploadType,
-        file_size: uploadBuffer.length,
+        file_size: file.size,
       })
       .select()
       .single();
