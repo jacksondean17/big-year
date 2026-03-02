@@ -85,7 +85,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate storage key
-    const extFromName = file.name.split(".").pop()?.toLowerCase() || "";
+    const dotIndex = file.name.lastIndexOf(".");
+    const extFromName =
+      dotIndex > 0 ? file.name.slice(dotIndex + 1).toLowerCase() : "";
     const isHeicByExt = HEIC_EXTENSIONS.includes(extFromName);
     const isHeicByMime = HEIC_MIME_TYPES.includes(file.type);
     const ext = isHeicByExt || isHeicByMime ? "jpg" : extFromName || "bin";
@@ -106,6 +108,12 @@ export async function POST(request: NextRequest) {
           );
           return null;
         });
+      if (!metadata) {
+        return NextResponse.json(
+          { error: "Failed to process HEIC/HEIF image metadata." },
+          { status: 400 }
+        );
+      }
       isHeicByMetadata =
         metadata?.format === "heic" || metadata?.format === "heif";
     }
@@ -119,7 +127,7 @@ export async function POST(request: NextRequest) {
     if (shouldConvertHeic) {
       try {
         uploadBuffer = await sharp(originalBuffer)
-          // Normalize orientation: apply EXIF rotation and strip the orientation flag
+          // Normalize orientation: apply EXIF rotation and remove the EXIF orientation tag
           .rotate()
           .jpeg({ quality: 90 })
           .toBuffer();
