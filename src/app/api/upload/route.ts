@@ -108,7 +108,6 @@ export async function POST(request: NextRequest) {
             "HEIC metadata read failed:",
             {
               completionId,
-              userId: user.id,
               error: err instanceof Error ? err.message : err,
             }
           );
@@ -133,9 +132,9 @@ export async function POST(request: NextRequest) {
     if (shouldConvertHeic) {
       try {
         uploadBuffer = await sharp(originalBuffer)
-          // Normalize orientation: apply EXIF rotation and remove the EXIF orientation tag
+          // Normalize orientation: apply EXIF rotation; EXIF orientation tag is removed during JPEG encoding
           .rotate()
-          .jpeg({ quality: 90 })
+          .jpeg({ quality: 85 })
           .toBuffer();
         uploadType = "image/jpeg";
       } catch (conversionError) {
