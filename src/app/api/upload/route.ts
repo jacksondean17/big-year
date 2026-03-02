@@ -84,25 +84,33 @@ export async function POST(request: NextRequest) {
 
     // Generate storage key
     const extFromName = file.name.split(".").pop()?.toLowerCase() || "";
-    const isHeic =
-      HEIC_MIME_TYPES.includes(file.type) || HEIC_EXTENSIONS.includes(extFromName);
-    const ext = isHeic ? "jpg" : extFromName || "bin";
+    const isHeicByExt = HEIC_EXTENSIONS.includes(extFromName);
+    const isHeicByMime = HEIC_MIME_TYPES.includes(file.type);
+    const ext = isHeicByExt || isHeicByMime ? "jpg" : extFromName || "bin";
     const key = `completions/${user.id}/${completionId}/${Date.now()}.${ext}`;
 
     // Upload to R2 (convert HEIC/HEIF to JPEG for compatibility)
     const originalBuffer = Buffer.from(await file.arrayBuffer());
-    const metadata = await sharp(originalBuffer)
-      .metadata()
-      .catch((err) => {
-        console.error(
-          "HEIC metadata read failed:",
-          err instanceof Error ? err.message : err
-        );
-        return null;
-      });
-    const isHeicDetected =
-      metadata?.format === "heic" || metadata?.format === "heif";
-    const shouldConvertHeic = isHeic || isHeicDetected;
+    let isHeicByMetadata = false;
+    let metadata: Awaited<ReturnType<typeof sharp.prototype.metadata>> | null =
+      null;
+
+    if (isHeicByExt || isHeicByMime || !file.type) {
+      metadata = await sharp(originalBuffer)
+        .metadata()
+        .catch((err) => {
+          console.error(
+            "HEIC metadata read failed:",
+            err instanceof Error ? err.message : err
+          );
+          return null;
+        });
+      isHeicByMetadata =
+        metadata?.format === "heic" || metadata?.format === "heif";
+    }
+
+    const shouldConvertHeic =
+      isHeicByExt || isHeicByMime || isHeicByMetadata;
 
     let uploadBuffer = originalBuffer;
     let uploadType = file.type;
@@ -110,7 +118,7 @@ export async function POST(request: NextRequest) {
     if (shouldConvertHeic) {
       try {
         uploadBuffer = await sharp(originalBuffer)
-          // Auto-orient based on EXIF so converted JPEG displays correctly
+          // Auto-orient (uses EXIF orientation data) so converted JPEG displays correctly
           .rotate()
           .jpeg({ quality: 90 })
           .toBuffer();
