@@ -18,6 +18,14 @@ const ALLOWED_TYPES = [
   "video/mp4",
   "video/quicktime",
 ];
+
+const HEIC_MIME_TYPES = [
+  "image/heic",
+  "image/heif",
+  "image/heic-sequence",
+  "image/heif-sequence",
+];
+const HEIC_EXTENSIONS = ["heic", "heif"];
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
 export async function POST(request: NextRequest) {
@@ -76,13 +84,8 @@ export async function POST(request: NextRequest) {
 
     // Generate storage key
     const extFromName = file.name.split(".").pop()?.toLowerCase() || "";
-    const heicTypes = [
-      "image/heic",
-      "image/heif",
-      "image/heic-sequence",
-      "image/heif-sequence",
-    ];
-    const isHeic = heicTypes.includes(file.type) || ["heic", "heif"].includes(extFromName);
+    const isHeic =
+      HEIC_MIME_TYPES.includes(file.type) || HEIC_EXTENSIONS.includes(extFromName);
     const ext = isHeic ? "jpg" : extFromName || "bin";
     const key = `completions/${user.id}/${completionId}/${Date.now()}.${ext}`;
 
