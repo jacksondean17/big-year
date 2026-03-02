@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     if (shouldConvertHeic) {
       try {
         uploadBuffer = await sharp(originalBuffer)
-          // Auto-orient (uses EXIF orientation data) so converted JPEG displays correctly
+          // Normalize orientation: apply EXIF rotation and strip the orientation flag
           .rotate()
           .jpeg({ quality: 90 })
           .toBuffer();
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
         storage_path: key,
         public_url: publicUrl,
         file_type: uploadType,
-        file_size: file.size,
+        file_size: uploadBuffer.length,
       })
       .select()
       .single();
