@@ -85,10 +85,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate storage key
-    const extFromName =
-      file.name.includes(".") && file.name.split(".").length > 1
-        ? file.name.split(".").pop()?.toLowerCase() || ""
-        : "";
+    const extFromName = file.name.split(".").pop()?.toLowerCase() || "";
     const isHeicByExt = HEIC_EXTENSIONS.includes(extFromName);
     const isHeicByMime = HEIC_MIME_TYPES.includes(file.type);
     const ext = isHeicByExt || isHeicByMime ? "jpg" : extFromName || "bin";
@@ -106,6 +103,7 @@ export async function POST(request: NextRequest) {
         console.error("HEIC metadata read failed:", {
           completionId,
           error: err instanceof Error ? err.message : err,
+          errorName: err instanceof Error ? err.name : undefined,
         });
         return NextResponse.json(
           { error: "Failed to process HEIC/HEIF image metadata." },
@@ -124,7 +122,7 @@ export async function POST(request: NextRequest) {
     if (shouldConvertHeic) {
       try {
         uploadBuffer = await sharp(originalBuffer)
-          // Normalize orientation: apply EXIF rotation when present; EXIF orientation tag is removed during JPEG encoding (no-op if none exists)
+          // Apply EXIF rotation to normalize orientation (no-op if none exists); orientation tag is cleared during JPEG encoding
           .rotate()
           .jpeg({ quality: 85 })
           .toBuffer();
