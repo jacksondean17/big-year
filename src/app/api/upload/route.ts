@@ -1,18 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
+import sharp from "sharp";
 import { createClient } from "@/lib/supabase/server";
 import { uploadToR2, getPublicUrl, deleteFromR2 } from "@/lib/r2";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
+type SharpMetadata = Awaited<ReturnType<typeof sharp.prototype.metadata>>;
+
 const ALLOWED_TYPES = [
   "image/jpeg",
   "image/png",
   "image/webp",
   "image/gif",
+  "image/heic",
+  "image/heif",
+  "image/heic-sequence",
+  "image/heif-sequence",
   "video/mp4",
   "video/quicktime",
 ];
+
+const HEIC_MIME_TYPES = [
+  "image/heic",
+  "image/heif",
+  "image/heic-sequence",
+  "image/heif-sequence",
+];
+const HEIC_EXTENSIONS = ["heic", "heif"];
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
 export async function POST(request: NextRequest) {
@@ -39,7 +54,10 @@ export async function POST(request: NextRequest) {
 
     if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
-        { error: "File type not allowed. Use JPEG, PNG, WebP, GIF, MP4, or MOV." },
+        {
+          error:
+            "File type not allowed. Use JPEG, PNG, WebP, GIF, HEIC, HEIF, MP4, or MOV.",
+        },
         { status: 400 }
       );
     }
@@ -67,12 +85,65 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate storage key
-    const ext = file.name.split(".").pop() || "bin";
+    const extFromName = file.name.split(".").pop()?.toLowerCase() || "";
+    const isHeicByExt = HEIC_EXTENSIONS.includes(extFromName);
+    const isHeicByMime = HEIC_MIME_TYPES.includes(file.type);
+    const ext = isHeicByExt || isHeicByMime ? "jpg" : extFromName || "bin";
     const key = `completions/${user.id}/${completionId}/${Date.now()}.${ext}`;
 
-    // Upload to R2
-    const buffer = Buffer.from(await file.arrayBuffer());
-    await uploadToR2(buffer, key, file.type);
+    // Upload to R2 (convert HEIC/HEIF to JPEG for compatibility)
+    const originalBuffer = Buffer.from(await file.arrayBuffer());
+    let isHeicByMetadata = false;
+    let metadata: SharpMetadata | null = null;
+
+    if (isHeicByExt || isHeicByMime || file.type.startsWith("image/")) {
+      try {
+        metadata = await sharp(originalBuffer).metadata();
+      } catch (err) {
+        console.error("HEIC metadata read failed:", {
+          completionId,
+          error: err instanceof Error ? err.message : err,
+          errorName: err instanceof Error ? err.name : undefined,
+        });
+        return NextResponse.json(
+          { error: "Failed to process HEIC/HEIF image metadata." },
+          { status: 400 }
+        );
+      }
+      isHeicByMetadata = ["heic", "heif", "heic-sequence", "heif-sequence"].includes(
+        metadata.format ?? ""
+      );
+    }
+
+    const shouldConvertHeic =
+      isHeicByExt || isHeicByMime || isHeicByMetadata;
+
+    let uploadBuffer = originalBuffer;
+    let uploadType = file.type;
+
+    if (shouldConvertHeic) {
+      try {
+        uploadBuffer = await sharp(originalBuffer)
+          // Apply EXIF rotation to normalize orientation (no-op if none exists); orientation tag is cleared during JPEG encoding
+          .rotate()
+          .jpeg({ quality: 85 })
+          .toBuffer();
+        uploadType = "image/jpeg";
+      } catch (conversionError) {
+        console.error(
+          "HEIC conversion failed:",
+          conversionError instanceof Error
+            ? conversionError.message
+            : conversionError
+        );
+        return NextResponse.json(
+          { error: "Failed to process HEIC/HEIF image." },
+          { status: 400 }
+        );
+      }
+    }
+
+    await uploadToR2(uploadBuffer, key, uploadType);
 
     const publicUrl = getPublicUrl(key);
 
@@ -83,8 +154,8 @@ export async function POST(request: NextRequest) {
         completion_id: completionId,
         storage_path: key,
         public_url: publicUrl,
-        file_type: file.type,
-        file_size: file.size,
+        file_type: uploadType,
+        file_size: uploadBuffer.length,
       })
       .select()
       .single();
