@@ -157,7 +157,7 @@ export function RankingComparison({
     setShowAfkPrompt(false);
     afkTimerRef.current = setTimeout(() => {
       setShowAfkPrompt(true);
-    }, 30000);
+    }, 60 * 1000); // 60s
   }, []);
 
   // Clean up AFK timer on unmount
