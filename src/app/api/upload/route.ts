@@ -13,6 +13,8 @@ const ALLOWED_TYPES = [
   "image/gif",
   "image/heic",
   "image/heif",
+  "image/heic-sequence",
+  "image/heif-sequence",
   "video/mp4",
   "video/quicktime",
 ];
@@ -73,14 +75,25 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate storage key
-    const isHeic = file.type === "image/heic" || file.type === "image/heif";
-    const ext = isHeic ? "jpg" : file.name.split(".").pop() || "bin";
+    const extFromName = file.name.split(".").pop()?.toLowerCase() || "";
+    const heicTypes = [
+      "image/heic",
+      "image/heif",
+      "image/heic-sequence",
+      "image/heif-sequence",
+    ];
+    const isHeic = heicTypes.includes(file.type) || ["heic", "heif"].includes(extFromName);
+    const ext = isHeic ? "jpg" : extFromName || "bin";
     const key = `completions/${user.id}/${completionId}/${Date.now()}.${ext}`;
 
     // Upload to R2 (convert HEIC/HEIF to JPEG for compatibility)
     const originalBuffer = Buffer.from(await file.arrayBuffer());
     const uploadBuffer = isHeic
-      ? await sharp(originalBuffer).rotate().jpeg({ quality: 90 }).toBuffer()
+      ? await sharp(originalBuffer)
+          // Auto-orient based on EXIF so converted JPEG displays correctly
+          .rotate()
+          .jpeg({ quality: 90 })
+          .toBuffer()
       : originalBuffer;
     const uploadType = isHeic ? "image/jpeg" : file.type;
 

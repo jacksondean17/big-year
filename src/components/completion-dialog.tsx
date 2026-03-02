@@ -201,6 +201,8 @@ export function CompletionDialog({
       "image/gif",
       "image/heic",
       "image/heif",
+      "image/heic-sequence",
+      "image/heif-sequence",
       "video/mp4",
       "video/quicktime",
     ];
@@ -302,14 +304,14 @@ export function CompletionDialog({
                 <input
                   type="file"
                   className="hidden"
-                  accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,video/mp4,video/quicktime"
+                  accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,image/heic-sequence,image/heif-sequence,video/mp4,video/quicktime"
                   onChange={handleFileSelect}
                   disabled={isPending}
                 />
               </label>
             </div>
             <p className="text-xs text-muted-foreground">
-              Max 100MB. JPEG, PNG, WebP, GIF, HEIC, HEIF, MP4, or MOV.
+              Max 100MB. JPEG, PNG, WebP, GIF, HEIC/HEIF (converted to JPEG), MP4, or MOV.
             </p>
 
             {/* Media preview grid */}
