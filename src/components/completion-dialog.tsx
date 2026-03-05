@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -189,8 +189,31 @@ export function CompletionDialog({
     });
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const [isConverting, setIsConverting] = useState(false);
+
+  const isHeic = useCallback((file: File) => {
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    return (
+      file.type === "image/heic" ||
+      file.type === "image/heif" ||
+      ext === "heic" ||
+      ext === "heif"
+    );
+  }, []);
+
+  const convertHeicToJpeg = useCallback(async (file: File): Promise<File> => {
+    const { heicTo } = await import("heic-to");
+    const blob = await heicTo({
+      blob: file,
+      type: "image/jpeg",
+      quality: 0.9,
+    });
+    const name = file.name.replace(/\.heic$/i, ".jpg").replace(/\.heif$/i, ".jpg");
+    return new File([blob], name, { type: "image/jpeg" });
+  }, []);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    let file = e.target.files?.[0];
     if (!file) return;
 
     // Client-side validation
@@ -199,11 +222,15 @@ export function CompletionDialog({
       "image/png",
       "image/webp",
       "image/gif",
+      "image/heic",
+      "image/heif",
       "video/mp4",
       "video/quicktime",
     ];
-    if (!allowedTypes.includes(file.type)) {
-      setError("File type not allowed. Use JPEG, PNG, WebP, GIF, MP4, or MOV.");
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    const allowedExtensions = ["jpg", "jpeg", "png", "webp", "gif", "heic", "heif", "mp4", "mov"];
+    if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(ext || "")) {
+      setError("File type not allowed. Use JPEG, PNG, WebP, GIF, HEIC, MP4, or MOV.");
       e.target.value = "";
       return;
     }
@@ -214,6 +241,22 @@ export function CompletionDialog({
     }
 
     setError(null);
+
+    // Convert HEIC/HEIF to JPEG for browser compatibility
+    if (isHeic(file)) {
+      try {
+        setIsConverting(true);
+        file = await convertHeicToJpeg(file);
+      } catch {
+        setError("Failed to convert HEIC image. Please try converting to JPEG first.");
+        e.target.value = "";
+        setIsConverting(false);
+        return;
+      } finally {
+        setIsConverting(false);
+      }
+    }
+
     const preview = URL.createObjectURL(file);
     setPendingFiles((prev) => [...prev, { file, preview }]);
     e.target.value = "";
@@ -298,14 +341,20 @@ export function CompletionDialog({
                 <input
                   type="file"
                   className="hidden"
-                  accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime"
+                  accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,video/mp4,video/quicktime"
                   onChange={handleFileSelect}
-                  disabled={isPending}
+                  disabled={isPending || isConverting}
                 />
               </label>
             </div>
+            {isConverting && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Loader2 className="size-3 animate-spin" />
+                Converting HEIC to JPEG...
+              </p>
+            )}
             <p className="text-xs text-muted-foreground">
-              Max 100MB. JPEG, PNG, WebP, GIF, MP4, or MOV.
+              Max 100MB. JPEG, PNG, WebP, GIF, HEIC, MP4, or MOV.
             </p>
 
             {/* Media preview grid */}
