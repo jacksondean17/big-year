@@ -137,7 +137,7 @@ export default async function AdminRankingsPage() {
   const decisionTimeData = allComparisons
     .filter((c) => c.response_time_ms != null)
     .sort((a, b) => a.created_at.localeCompare(b.created_at))
-    .map((c, i) => ({ index: i + 1, timeMs: c.response_time_ms! }));
+    .map((c, i) => ({ index: i + 1, timeMs: c.response_time_ms!, userId: c.user_id }));
 
   // Compute Bradley-Terry scores
   const btResult = computeBradleyTerry(
@@ -300,7 +300,7 @@ export default async function AdminRankingsPage() {
 
       {/* Decision Time Chart */}
       {decisionTimeData.length > 0 && (
-        <DecisionTimeChart data={decisionTimeData} />
+        <DecisionTimeChart data={decisionTimeData} profileMap={profileMap} />
       )}
 
       {/* Challenge rankings by BT score */}
@@ -623,8 +623,10 @@ function StatCard({
 
 function DecisionTimeChart({
   data,
+  profileMap,
 }: {
-  data: { index: number; timeMs: number }[];
+  data: { index: number; timeMs: number; userId: string }[];
+  profileMap: Map<string, string>;
 }) {
   const W = 800;
   const H = 320;
@@ -633,7 +635,7 @@ function DecisionTimeChart({
   const plotH = H - PAD.top - PAD.bottom;
 
   // Cap at 60s for display to avoid outliers blowing up the scale
-  const cappedData = data.map((d) => ({ ...d, timeSec: Math.min(d.timeMs / 1000, 60) }));
+  const cappedData = data.map((d) => ({ ...d, timeSec: Math.min(d.timeMs / 1000, 60), judge: profileMap.get(d.userId) ?? "Unknown" }));
   const maxTime = Math.ceil(Math.max(...cappedData.map((d) => d.timeSec)));
   const yRange = maxTime || 1;
   const maxIndex = data[data.length - 1].index;
@@ -644,6 +646,7 @@ function DecisionTimeChart({
     index: d.index,
     timeSec: d.timeSec,
     originalMs: d.timeMs,
+    judge: d.judge,
   }));
 
   // Y-axis ticks
@@ -712,7 +715,7 @@ function DecisionTimeChart({
               cx={p.x} cy={p.y} r={data.length > 200 ? 2 : 3}
               fill="hsl(200, 70%, 55%)" opacity={0.7}
             >
-              <title suppressHydrationWarning>#{p.index} — {(p.originalMs / 1000).toFixed(1)}s</title>
+              <title suppressHydrationWarning>#{p.index} — {(p.originalMs / 1000).toFixed(1)}s — {p.judge}</title>
             </circle>
           ))}
         </svg>
