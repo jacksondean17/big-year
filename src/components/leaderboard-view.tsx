@@ -12,10 +12,12 @@ function RankRow({
   user,
   isCurrentUser,
   position,
+  showPoints = false,
 }: {
   user: RankedUser;
   isCurrentUser: boolean;
   position: "above" | "self" | "below";
+  showPoints?: boolean;
 }) {
   const name = getDisplayName(user);
 
@@ -57,7 +59,7 @@ function RankRow({
         </span>
         <LeagueBadge league={user.league} />
         <span className="w-16 text-right text-sm font-mono">
-          {isCurrentUser || position === "above"
+          {isCurrentUser || showPoints
             ? `${user.total_points} pts`
             : <span className="blur-[3px] select-none">{user.total_points} pts</span>}
         </span>
@@ -124,12 +126,13 @@ export function LeaderboardView({ context }: { context: LeaderboardContext }) {
         <CardContent className="space-y-1 py-2">
           {showBlurAbove && <BlurredRow />}
 
-          {above.map((user) => (
+          {above.map((user, i) => (
             <RankRow
               key={user.user_id}
               user={user}
               isCurrentUser={false}
               position="above"
+              showPoints={i >= above.length - 2}
             />
           ))}
 
