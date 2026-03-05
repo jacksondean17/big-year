@@ -61,6 +61,7 @@ export function RankingComparison({
   const [autoRunning, setAutoRunning] = useState(false);
   const [showGuide, setShowGuide] = useState(true);
   const [showAfkPrompt, setShowAfkPrompt] = useState(false);
+  const afkPromptShownAt = useRef<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const pairShownAt = useRef<number>(0);
   const afkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -156,6 +157,7 @@ export function RankingComparison({
     if (afkTimerRef.current) clearTimeout(afkTimerRef.current);
     setShowAfkPrompt(false);
     afkTimerRef.current = setTimeout(() => {
+      afkPromptShownAt.current = Date.now();
       setShowAfkPrompt(true);
     }, 60 * 1000); // 60s
   }, []);
@@ -381,7 +383,10 @@ export function RankingComparison({
 
       <AfkPromptDialog open={showAfkPrompt} onConfirm={() => {
         setShowAfkPrompt(false);
-        pairShownAt.current = Date.now();
+        // If they took more than 5s to respond, they were truly AFK — reset the timer
+        if (Date.now() - afkPromptShownAt.current > 5000) {
+          pairShownAt.current = Date.now();
+        }
         startAfkTimer();
       }} />
     </div>
