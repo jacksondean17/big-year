@@ -57,7 +57,9 @@ function RankRow({
         </span>
         <LeagueBadge league={user.league} />
         <span className="w-16 text-right text-sm font-mono">
-          {isCurrentUser ? `${user.total_points} pts` : "---"}
+          {isCurrentUser || position === "above"
+            ? `${user.total_points} pts`
+            : <span className="blur-[3px] select-none">{user.total_points} pts</span>}
         </span>
       </div>
     </Link>
@@ -75,7 +77,7 @@ function BlurredRow() {
         <AvatarFallback className="text-xs">?</AvatarFallback>
       </Avatar>
       <span className="flex-1 font-medium truncate">?????</span>
-      <span className="w-16 text-right text-sm font-mono">---</span>
+      <span className="w-16 text-right text-sm font-mono">42 pts</span>
     </div>
   );
 }
