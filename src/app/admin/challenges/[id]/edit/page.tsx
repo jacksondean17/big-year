@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DeleteChallengeButton } from "@/components/delete-challenge-button";
+import { AdminChallengeData } from "@/components/admin-challenge-data";
 
 export default async function EditChallengePage({
   params,
@@ -138,6 +139,11 @@ export default async function EditChallengePage({
           </form>
         </CardContent>
       </Card>
+
+      {/* Challenge Activity Data */}
+      <div className="max-w-2xl mt-12">
+        <AdminChallengeData challengeId={challenge.id} />
+      </div>
 
       {/* Danger Zone */}
       <Card className="max-w-2xl mt-12 border-destructive/40">

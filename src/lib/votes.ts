@@ -54,6 +54,31 @@ export async function getVoteCountForChallenge(
   return { upvotes: data?.upvotes ?? 0, downvotes: data?.downvotes ?? 0 };
 }
 
+export interface ChallengeVoter {
+  user_id: string;
+  vote_type: 1 | -1;
+  profiles: { id: string; display_name: string; avatar_url: string | null; guild_nickname: string | null };
+}
+
+export async function getAllVotersForChallenge(
+  challengeId: number
+): Promise<ChallengeVoter[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("challenge_votes")
+    .select("user_id, vote_type, profiles(id, display_name, avatar_url, guild_nickname)")
+    .eq("challenge_id", challengeId);
+
+  if (error) return [];
+  return (data ?? [])
+    .filter((row) => row.profiles)
+    .map((row) => ({
+      user_id: row.user_id,
+      vote_type: row.vote_type as 1 | -1,
+      profiles: row.profiles as unknown as ChallengeVoter["profiles"],
+    }));
+}
+
 export async function getUserVoteForChallenge(
   challengeId: number
 ): Promise<UserVoteType> {

@@ -16,6 +16,31 @@ export async function getUserNoteChallengeIds(): Promise<Set<number>> {
   return new Set((data ?? []).map((r) => r.challenge_id));
 }
 
+export interface ChallengeNote {
+  user_id: string;
+  note_text: string;
+  profiles: { id: string; display_name: string; avatar_url: string | null; guild_nickname: string | null };
+}
+
+export async function getAllNotesForChallenge(
+  challengeId: number
+): Promise<ChallengeNote[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("challenge_notes")
+    .select("user_id, note_text, profiles(id, display_name, avatar_url, guild_nickname)")
+    .eq("challenge_id", challengeId);
+
+  if (error) return [];
+  return (data ?? [])
+    .filter((row) => row.profiles)
+    .map((row) => ({
+      user_id: row.user_id,
+      note_text: row.note_text,
+      profiles: row.profiles as unknown as ChallengeNote["profiles"],
+    }));
+}
+
 export async function getUserNoteForChallenge(
   challengeId: number
 ): Promise<string | null> {
