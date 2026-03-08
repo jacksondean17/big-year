@@ -64,18 +64,32 @@ export async function getAllVotersForChallenge(
   challengeId: number
 ): Promise<ChallengeVoter[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+
+  // Get votes
+  const { data: votes, error: votesError } = await supabase
     .from("challenge_votes")
-    .select("user_id, vote_type, profiles(id, display_name, avatar_url, guild_nickname)")
+    .select("user_id, vote_type")
     .eq("challenge_id", challengeId);
 
-  if (error) return [];
-  return (data ?? [])
-    .filter((row) => row.profiles)
-    .map((row) => ({
-      user_id: row.user_id,
-      vote_type: row.vote_type as 1 | -1,
-      profiles: row.profiles as unknown as ChallengeVoter["profiles"],
+  if (votesError || !votes?.length) return [];
+
+  // Get profiles for those users
+  const userIds = votes.map((v) => v.user_id);
+  const { data: profiles, error: profilesError } = await supabase
+    .from("profiles")
+    .select("id, display_name, avatar_url, guild_nickname")
+    .in("id", userIds);
+
+  if (profilesError) return [];
+
+  const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+  return votes
+    .filter((v) => profileMap.has(v.user_id))
+    .map((v) => ({
+      user_id: v.user_id,
+      vote_type: v.vote_type as 1 | -1,
+      profiles: profileMap.get(v.user_id)!,
     }));
 }
 

@@ -26,18 +26,30 @@ export async function getAllNotesForChallenge(
   challengeId: number
 ): Promise<ChallengeNote[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+
+  const { data: notes, error: notesError } = await supabase
     .from("challenge_notes")
-    .select("user_id, note_text, profiles(id, display_name, avatar_url, guild_nickname)")
+    .select("user_id, note_text")
     .eq("challenge_id", challengeId);
 
-  if (error) return [];
-  return (data ?? [])
-    .filter((row) => row.profiles)
-    .map((row) => ({
-      user_id: row.user_id,
-      note_text: row.note_text,
-      profiles: row.profiles as unknown as ChallengeNote["profiles"],
+  if (notesError || !notes?.length) return [];
+
+  const userIds = notes.map((n) => n.user_id);
+  const { data: profiles, error: profilesError } = await supabase
+    .from("profiles")
+    .select("id, display_name, avatar_url, guild_nickname")
+    .in("id", userIds);
+
+  if (profilesError) return [];
+
+  const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+  return notes
+    .filter((n) => profileMap.has(n.user_id))
+    .map((n) => ({
+      user_id: n.user_id,
+      note_text: n.note_text,
+      profiles: profileMap.get(n.user_id)!,
     }));
 }
 
