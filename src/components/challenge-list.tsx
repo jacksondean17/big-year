@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Challenge } from "@/lib/types";
 import type { SortOption, SortDirection, VoteData, ChallengeSaver } from "@/lib/types";
 import { ChallengeCard } from "./challenge-card";
 import { ChallengeFilters } from "./challenge-filters";
+
+const VALID_SORTS = new Set<SortOption>(["default", "new", "popular", "saves", "controversial", "points", "completions", "time"]);
 
 function getControversy(v: VoteData): number {
   const total = v.upvotes + v.downvotes;
@@ -36,10 +39,25 @@ export function ChallengeList({
   submitterNames?: Record<string, string>;
   isLoggedIn?: boolean;
 }) {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSort, setSelectedSort] = useState<SortOption>("default");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const selectedSort = (VALID_SORTS.has(searchParams.get("sort") as SortOption) ? searchParams.get("sort") : "default") as SortOption;
+  const sortDirection = (searchParams.get("dir") === "asc" ? "asc" : "desc") as SortDirection;
+  const selectedCategory = searchParams.get("category") || null;
+  const searchQuery = searchParams.get("q") || "";
+
+  const updateParams = useCallback((updates: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const [key, value] of Object.entries(updates)) {
+      if (value === null || value === "") {
+        params.delete(key);
+      } else {
+        params.set(key, value);
+      }
+    }
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }, [searchParams, router]);
 
   const categories = useMemo(() => {
     const cats = [...new Set(challenges.flatMap((c) => c.category))];
@@ -97,6 +115,15 @@ export function ChallengeList({
         const bCount = completionCounts?.[b.id] ?? 0;
         return (bCount - aCount) * dir;
       });
+    } else if (selectedSort === "time") {
+      const timeRank: Record<string, number> = {
+        "Hours": 1, "Days": 2, "Weeks": 3, "Months": 4, "Full Year": 5, "IDEK": 6,
+      };
+      result = [...result].sort((a, b) => {
+        const aRank = timeRank[a.estimated_time] ?? 6;
+        const bRank = timeRank[b.estimated_time] ?? 6;
+        return (aRank - bRank) * dir;
+      });
     }
 
     return result;
@@ -119,15 +146,10 @@ export function ChallengeList({
         searchQuery={searchQuery}
         selectedSort={selectedSort}
         sortDirection={sortDirection}
-        onCategoryChange={setSelectedCategory}
-        onSearchChange={setSearchQuery}
-        onSortChange={(sort) => {
-          setSelectedSort(sort);
-          setSortDirection("desc");
-        }}
-        onSortDirectionToggle={() =>
-          setSortDirection((d) => (d === "desc" ? "asc" : "desc"))
-        }
+        onCategoryChange={(cat) => updateParams({ category: cat })}
+        onSearchChange={(q) => updateParams({ q: q || null })}
+        onSortChange={(sort) => updateParams({ sort: sort === "default" ? null : sort, dir: null })}
+        onSortDirectionToggle={() => updateParams({ dir: sortDirection === "desc" ? "asc" : "desc" })}
       />
 
       <p className="text-sm text-muted-foreground">

@@ -24,6 +24,7 @@ const sortOptions: { value: SortOption; label: string }[] = [
   { value: "controversial", label: "Controversial" },
   { value: "points", label: "Points" },
   { value: "completions", label: "Completions" },
+  { value: "time", label: "Time" },
 ];
 
 export function ChallengeFilters({

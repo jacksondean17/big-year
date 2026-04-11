@@ -21,7 +21,7 @@ export interface VoteData {
   downvotes: number;
 }
 
-export type SortOption = "default" | "new" | "popular" | "saves" | "controversial" | "points" | "completions";
+export type SortOption = "default" | "new" | "popular" | "saves" | "controversial" | "points" | "completions" | "time";
 export type SortDirection = "desc" | "asc";
 
 export interface UserProfile {
