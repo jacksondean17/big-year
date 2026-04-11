@@ -1,5 +1,6 @@
 export interface Challenge {
   id: number;
+  created_at: string;
   title: string;
   description: string;
   estimated_time: string;
