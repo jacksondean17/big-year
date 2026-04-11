@@ -49,7 +49,7 @@ export default async function AdminPage() {
                 </td>
                 <td className="px-4 py-3 font-medium">{challenge.title}</td>
                 <td className="px-4 py-3 text-muted-foreground">
-                  {challenge.category}
+                  {challenge.category.join(", ")}
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">
                   {challenge.points ?? "—"}

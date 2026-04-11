@@ -39,7 +39,7 @@ interface ChallengeRow {
   description: string;
   estimated_time: string;
   completion_criteria: string;
-  category: string;
+  category: string[];
 }
 
 async function syncChallenges() {
@@ -63,7 +63,7 @@ async function syncChallenges() {
       description: r["Description"] ?? "",
       estimated_time: r["Estimated Time"] ?? "",
       completion_criteria: r["Completion Criteria"] ?? "",
-      category: r["Category"] ?? "",
+      category: (r["Category"] ?? "").split(",").map((s: string) => s.trim()).filter(Boolean),
     }));
 
   console.log(`Parsed ${csvChallenges.length} challenges from CSV`);

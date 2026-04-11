@@ -4,7 +4,7 @@ export interface Challenge {
   description: string;
   estimated_time: string;
   completion_criteria: string;
-  category: string;
+  category: string[];
   points: number | null;
   submitted_by: string | null;
   depth: number | null;

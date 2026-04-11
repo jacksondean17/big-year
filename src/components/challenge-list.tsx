@@ -42,13 +42,13 @@ export function ChallengeList({
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   const categories = useMemo(() => {
-    const cats = [...new Set(challenges.map((c) => c.category))];
+    const cats = [...new Set(challenges.flatMap((c) => c.category))];
     return cats.sort();
   }, [challenges]);
 
   const filtered = useMemo(() => {
     let result = challenges.filter((c) => {
-      if (selectedCategory && c.category !== selectedCategory) return false;
+      if (selectedCategory && !c.category.includes(selectedCategory)) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         return (

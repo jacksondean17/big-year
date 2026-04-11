@@ -294,7 +294,7 @@ export async function sendCompletionMessage(params: {
   challengeTitle: string;
   challengeId: number;
   points: number | null;
-  category: string;
+  category: string[];
   note?: string | null;
   externalUrl?: string | null;
   imageUrl?: string | null;
@@ -352,7 +352,7 @@ export async function sendCompletionMessage(params: {
       ...(params.points != null
         ? [{ name: "Points", value: String(params.points), inline: true }]
         : []),
-      { name: "Category", value: params.category, inline: true },
+      { name: "Category", value: params.category.join(", "), inline: true },
       ...(params.externalUrl
         ? [{ name: "Link", value: params.externalUrl }]
         : []),

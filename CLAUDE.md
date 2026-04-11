@@ -129,7 +129,7 @@ interface Challenge {
   description: string;
   estimated_time: string;
   completion_criteria: string;
-  category: string;  // Achievement, Social, Physical, etc.
+  category: string[];  // e.g. ["Achievement"], ["Social", "Physical"]
   points: number | null;  // Auto-computed by DB trigger from scoring dimensions
   depth: number | null;       // 1-10
   courage: number | null;     // 1-10

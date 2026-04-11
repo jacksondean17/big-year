@@ -431,9 +431,11 @@ function ComparisonCard({
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-1.5 pt-1">
-            <Badge variant="outline" className="text-xs">
-              {challenge.category}
-            </Badge>
+            {challenge.category.map((cat) => (
+              <Badge key={cat} variant="outline" className="text-xs">
+                {cat}
+              </Badge>
+            ))}
           </div>
         </CardHeader>
         <CardContent>

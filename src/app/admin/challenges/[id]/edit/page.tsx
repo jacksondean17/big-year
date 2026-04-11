@@ -70,7 +70,7 @@ export default async function EditChallengePage({
               <Input
                 id="category"
                 name="category"
-                defaultValue={challenge.category}
+                defaultValue={challenge.category.join(", ")}
                 required
               />
             </div>

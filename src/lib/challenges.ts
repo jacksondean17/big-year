@@ -80,10 +80,11 @@ export async function getCategories(): Promise<string[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("challenges")
-    .select("category")
-    .order("category");
+    .select("category");
 
   if (error) throw error;
-  const categories = [...new Set(data.map((d) => d.category as string))];
-  return categories;
+  const categories = [
+    ...new Set(data.flatMap((d) => d.category as string[])),
+  ];
+  return categories.sort();
 }

@@ -41,7 +41,7 @@ export default function NewChallengePage() {
               <label htmlFor="category" className="text-sm font-medium">
                 Category
               </label>
-              <Input id="category" name="category" required />
+              <Input id="category" name="category" placeholder="e.g. Social, Physical" required />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

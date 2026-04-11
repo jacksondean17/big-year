@@ -80,7 +80,9 @@ export default async function ChallengePage({
       <Card>
         <CardHeader>
           <div className="flex flex-wrap gap-2 mb-2">
-            <Badge variant="outline">{challenge.category}</Badge>
+            {challenge.category.map((cat) => (
+              <Badge key={cat} variant="outline">{cat}</Badge>
+            ))}
           </div>
           <div className="mt-2">
             <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-base font-semibold text-amber-800">

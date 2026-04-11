@@ -95,7 +95,7 @@ function parseCsv(csvPath: string) {
         description: r["Description"],
         estimated_time: r["Estimated Time"],
         completion_criteria: r["Completion Criteria"],
-        category: r["Category"],
+        category: (r["Category"] || "").split(",").map((s: string) => s.trim()).filter(Boolean),
         submitted_by: submittedBy,
       };
     });
