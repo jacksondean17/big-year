@@ -18,6 +18,7 @@ interface ChallengeFiltersProps {
 
 const sortOptions: { value: SortOption; label: string }[] = [
   { value: "default", label: "Default" },
+  { value: "new", label: "New" },
   { value: "popular", label: "Upvotes" },
   { value: "saves", label: "Saves" },
   { value: "controversial", label: "Controversial" },

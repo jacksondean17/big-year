@@ -13,6 +13,7 @@
     "sync:challenges": "tsx scripts/sync-challenges.ts",
     "import:scoring": "tsx scripts/import-scoring.ts",
     "sync:challenges:local": "cp .env.local.dev .env.local && tsx scripts/sync-challenges.ts",
+    "sync:v3": "tsx scripts/sync-challenges-v3.ts",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
@@ -51,6 +52,6 @@
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "tw-animate-css": "^1.4.0",
-    "typescript": "^5"
+    "typescript": "5.9.3"
   }
 }

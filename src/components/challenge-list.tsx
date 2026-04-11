@@ -61,7 +61,11 @@ export function ChallengeList({
 
     const dir = sortDirection === "desc" ? 1 : -1;
 
-    if (selectedSort === "popular") {
+    if (selectedSort === "new") {
+      result = [...result].sort((a, b) => {
+        return (new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) * dir;
+      });
+    } else if (selectedSort === "popular") {
       result = [...result].sort((a, b) => {
         const aData = voteData[a.id] ?? { upvotes: 0, downvotes: 0 };
         const bData = voteData[b.id] ?? { upvotes: 0, downvotes: 0 };
