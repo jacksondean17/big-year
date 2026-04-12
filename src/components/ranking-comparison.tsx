@@ -439,7 +439,7 @@ function ComparisonCard({
           </div>
         </CardHeader>
         <CardContent>
-          <CardDescription className="line-clamp-3">
+          <CardDescription>
             {challenge.description}
           </CardDescription>
           <div className="mt-2 flex items-center justify-between">
