@@ -466,14 +466,14 @@ function ComparisonCard({
 function RankingGuideDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
     <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent className="max-w-md [&>button[class*='absolute']]:hidden" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+      <DialogContent className="max-w-md max-h-[90dvh] flex flex-col [&>button[class*='absolute']]:hidden" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>How Challenge Ranking Works</DialogTitle>
           <DialogDescription>
             Help us figure out how many points each challenge should be worth.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 text-sm">
+        <div className="space-y-4 text-sm overflow-y-auto">
           <p>
             You&apos;ll see two challenges side by side. Pick the one you think
             should be <strong>worth more points</strong>.
