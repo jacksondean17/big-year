@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { getChallenges, getSubmitterDisplayNames } from "@/lib/challenges";
 import { getUserChallengeIds } from "@/lib/my-list";
 import { getVoteCounts, getUserVotes } from "@/lib/votes";
@@ -51,20 +50,18 @@ export default async function BrainrotPage() {
           {challenges.length} challenges. Maximum brainrot.
         </p>
       </div>
-      <Suspense>
-        <BrainrotChallengeList
-          challenges={challenges}
-          savedChallengeIds={[...savedIds]}
-          voteData={voteDataMap}
-          userVotes={userVoteMap}
-          userNoteIds={[...noteIds]}
-          saveCounts={Object.fromEntries(saveCounts)}
-          completionCounts={Object.fromEntries(completionCounts)}
-          saversMap={{}}
-          submitterNames={submitterNames}
-          isLoggedIn={isLoggedIn}
-        />
-      </Suspense>
+      <BrainrotChallengeList
+        challenges={challenges}
+        savedChallengeIds={[...savedIds]}
+        voteData={voteDataMap}
+        userVotes={userVoteMap}
+        userNoteIds={[...noteIds]}
+        saveCounts={Object.fromEntries(saveCounts)}
+        completionCounts={Object.fromEntries(completionCounts)}
+        saversMap={{}}
+        submitterNames={submitterNames}
+        isLoggedIn={isLoggedIn}
+      />
     </div>
   );
 }

@@ -1,13 +1,10 @@
 "use client";
 
-import { useMemo, useCallback } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useState, useMemo } from "react";
 import { Challenge } from "@/lib/types";
 import type { SortOption, SortDirection, VoteData, ChallengeSaver } from "@/lib/types";
 import { ChallengeCard } from "./challenge-card";
 import { ChallengeFilters } from "./challenge-filters";
-
-const VALID_SORTS = new Set<SortOption>(["default", "new", "popular", "saves", "controversial", "points", "completions", "time"]);
 
 function getControversy(v: VoteData): number {
   const total = v.upvotes + v.downvotes;
@@ -39,25 +36,10 @@ export function ChallengeList({
   submitterNames?: Record<string, string>;
   isLoggedIn?: boolean;
 }) {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-
-  const selectedSort = (VALID_SORTS.has(searchParams.get("sort") as SortOption) ? searchParams.get("sort") : "default") as SortOption;
-  const sortDirection = (searchParams.get("dir") === "asc" ? "asc" : "desc") as SortDirection;
-  const selectedCategory = searchParams.get("category") || null;
-  const searchQuery = searchParams.get("q") || "";
-
-  const updateParams = useCallback((updates: Record<string, string | null>) => {
-    const params = new URLSearchParams(searchParams.toString());
-    for (const [key, value] of Object.entries(updates)) {
-      if (value === null || value === "") {
-        params.delete(key);
-      } else {
-        params.set(key, value);
-      }
-    }
-    router.replace(`?${params.toString()}`, { scroll: false });
-  }, [searchParams, router]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedSort, setSelectedSort] = useState<SortOption>("default");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   const categories = useMemo(() => {
     const cats = [...new Set(challenges.flatMap((c) => c.category))];
@@ -146,10 +128,15 @@ export function ChallengeList({
         searchQuery={searchQuery}
         selectedSort={selectedSort}
         sortDirection={sortDirection}
-        onCategoryChange={(cat) => updateParams({ category: cat })}
-        onSearchChange={(q) => updateParams({ q: q || null })}
-        onSortChange={(sort) => updateParams({ sort: sort === "default" ? null : sort, dir: null })}
-        onSortDirectionToggle={() => updateParams({ dir: sortDirection === "desc" ? "asc" : "desc" })}
+        onCategoryChange={setSelectedCategory}
+        onSearchChange={setSearchQuery}
+        onSortChange={(sort) => {
+          setSelectedSort(sort);
+          setSortDirection("desc");
+        }}
+        onSortDirectionToggle={() =>
+          setSortDirection((d) => (d === "desc" ? "asc" : "desc"))
+        }
       />
 
       <p className="text-sm text-muted-foreground">

@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { getChallenges, getSubmitterDisplayNames } from "@/lib/challenges";
 import { getUserChallengeIds } from "@/lib/my-list";
 import { getVoteCounts, getUserVotes } from "@/lib/votes";
@@ -42,20 +41,18 @@ export default async function Home() {
           {challenges.length} challenges to push your boundaries this year.
         </p>
       </div>
-      <Suspense>
-        <ChallengeList
-          challenges={challenges}
-          savedChallengeIds={[...savedIds]}
-          voteData={voteDataMap}
-          userVotes={userVoteMap}
-          userNoteIds={[...noteIds]}
-          saveCounts={Object.fromEntries(saveCounts)}
-          completionCounts={Object.fromEntries(completionCounts)}
-          saversMap={{}}
-          submitterNames={submitterNames}
-          isLoggedIn={isLoggedIn}
-        />
-      </Suspense>
+      <ChallengeList
+        challenges={challenges}
+        savedChallengeIds={[...savedIds]}
+        voteData={voteDataMap}
+        userVotes={userVoteMap}
+        userNoteIds={[...noteIds]}
+        saveCounts={Object.fromEntries(saveCounts)}
+        completionCounts={Object.fromEntries(completionCounts)}
+        saversMap={{}}
+        submitterNames={submitterNames}
+        isLoggedIn={isLoggedIn}
+      />
     </div>
   );
 }
