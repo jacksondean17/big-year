@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { SortOption, SortDirection } from "@/lib/types";
@@ -38,14 +39,45 @@ export function ChallengeFilters({
   onSortChange,
   onSortDirectionToggle,
 }: ChallengeFiltersProps) {
+  const [draft, setDraft] = useState(searchQuery);
+
+  // Sync draft when the committed search changes externally (e.g. restored from sessionStorage)
+  useEffect(() => {
+    setDraft(searchQuery);
+  }, [searchQuery]);
+
+  const submitSearch = () => {
+    if (draft !== searchQuery) onSearchChange(draft);
+  };
+
+  const clearSearch = () => {
+    setDraft("");
+    onSearchChange("");
+  };
+
   return (
     <div className="challenge-filters space-y-4">
-      <Input
-        placeholder="Search challenges..."
-        value={searchQuery}
-        onChange={(e) => onSearchChange(e.target.value)}
-        className="max-w-sm"
-      />
+      <div className="flex max-w-sm gap-2">
+        <Input
+          placeholder="Search challenges..."
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              submitSearch();
+            }
+          }}
+        />
+        <Button type="button" size="sm" onClick={submitSearch}>
+          Search
+        </Button>
+        {searchQuery && (
+          <Button type="button" variant="outline" size="sm" onClick={clearSearch}>
+            Clear
+          </Button>
+        )}
+      </div>
 
       <div className="space-y-2">
         <p className="text-sm font-medium text-muted-foreground">Category</p>

@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Challenge } from "@/lib/types";
 import type { SortOption, SortDirection, VoteData, ChallengeSaver } from "@/lib/types";
 import { ChallengeCard } from "./challenge-card";
 import { ChallengeFilters } from "./challenge-filters";
+
+const SEARCH_STORAGE_KEY = "challenge-search";
 
 function getControversy(v: VoteData): number {
   const total = v.upvotes + v.downvotes;
@@ -40,6 +42,25 @@ export function ChallengeList({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSort, setSelectedSort] = useState<SortOption>("default");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
+  // Restore saved search term after hydration (avoids SSR mismatch)
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(SEARCH_STORAGE_KEY);
+      if (saved) setSearchQuery(saved);
+    } catch {}
+  }, []);
+
+  // Persist search term to sessionStorage
+  useEffect(() => {
+    try {
+      if (searchQuery) {
+        sessionStorage.setItem(SEARCH_STORAGE_KEY, searchQuery);
+      } else {
+        sessionStorage.removeItem(SEARCH_STORAGE_KEY);
+      }
+    } catch {}
+  }, [searchQuery]);
 
   const categories = useMemo(() => {
     const cats = [...new Set(challenges.flatMap((c) => c.category))];
