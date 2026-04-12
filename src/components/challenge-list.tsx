@@ -2,17 +2,98 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { Challenge } from "@/lib/types";
-import type { SortOption, SortDirection, VoteData, ChallengeSaver } from "@/lib/types";
+import type { SortOption, SortDirection, ViewMode, VoteData, ChallengeSaver } from "@/lib/types";
 import { ChallengeCard } from "./challenge-card";
 import { ChallengeFilters } from "./challenge-filters";
+import { ChallengeTableHeader, ChallengeTableRow } from "./challenge-table-row";
 
 const SEARCH_STORAGE_KEY = "challenge-search";
+const FILTERS_STORAGE_KEY = "challenge-filters";
 
 function getControversy(v: VoteData): number {
   const total = v.upvotes + v.downvotes;
   const max = Math.max(v.upvotes, v.downvotes);
   if (max === 0) return 0;
   return (Math.min(v.upvotes, v.downvotes) / max) * total;
+}
+
+function loadFilters(): {
+  category: string | null;
+  sort: SortOption;
+  dir: SortDirection;
+  sort2: SortOption | null;
+  dir2: SortDirection;
+  view: ViewMode;
+} {
+  try {
+    const raw = sessionStorage.getItem(FILTERS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        category: parsed.category ?? null,
+        sort: parsed.sort ?? "default",
+        dir: parsed.dir ?? "desc",
+        sort2: parsed.sort2 ?? null,
+        dir2: parsed.dir2 ?? "desc",
+        view: parsed.view ?? "card",
+      };
+    }
+  } catch {}
+  return { category: null, sort: "default", dir: "desc", sort2: null, dir2: "desc", view: "card" };
+}
+
+function saveFilters(state: {
+  category: string | null;
+  sort: SortOption;
+  dir: SortDirection;
+  sort2: SortOption | null;
+  dir2: SortDirection;
+  view: ViewMode;
+}) {
+  try {
+    sessionStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(state));
+  } catch {}
+}
+
+const timeRank: Record<string, number> = {
+  "Hours": 1, "Days": 2, "Weeks": 3, "Months": 4, "Full Year": 5, "IDEK": 6,
+};
+
+function makeSortComparator(
+  sort: SortOption,
+  dir: SortDirection,
+  voteData: Record<number, VoteData>,
+  saveCounts: Record<number, number> | undefined,
+  completionCounts: Record<number, number> | undefined,
+): ((a: Challenge, b: Challenge) => number) | null {
+  const d = dir === "desc" ? 1 : -1;
+
+  switch (sort) {
+    case "new":
+      return (a, b) => (new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) * d;
+    case "popular":
+      return (a, b) => {
+        const aScore = (voteData[a.id]?.upvotes ?? 0) - (voteData[a.id]?.downvotes ?? 0);
+        const bScore = (voteData[b.id]?.upvotes ?? 0) - (voteData[b.id]?.downvotes ?? 0);
+        return (bScore - aScore) * d;
+      };
+    case "controversial":
+      return (a, b) => {
+        const aData = voteData[a.id] ?? { upvotes: 0, downvotes: 0 };
+        const bData = voteData[b.id] ?? { upvotes: 0, downvotes: 0 };
+        return (getControversy(bData) - getControversy(aData)) * d;
+      };
+    case "points":
+      return (a, b) => ((b.points ?? 0) - (a.points ?? 0)) * d;
+    case "saves":
+      return (a, b) => ((saveCounts?.[b.id] ?? 0) - (saveCounts?.[a.id] ?? 0)) * d;
+    case "completions":
+      return (a, b) => ((completionCounts?.[b.id] ?? 0) - (completionCounts?.[a.id] ?? 0)) * d;
+    case "time":
+      return (a, b) => ((timeRank[a.estimated_time] ?? 6) - (timeRank[b.estimated_time] ?? 6)) * d;
+    default:
+      return null;
+  }
 }
 
 export function ChallengeList({
@@ -42,16 +123,27 @@ export function ChallengeList({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSort, setSelectedSort] = useState<SortOption>("default");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [selectedSort2, setSelectedSort2] = useState<SortOption | null>(null);
+  const [sortDirection2, setSortDirection2] = useState<SortDirection>("desc");
+  const [viewMode, setViewMode] = useState<ViewMode>("card");
 
-  // Restore saved search term after hydration (avoids SSR mismatch)
+  // Restore filters from session storage after hydration
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem(SEARCH_STORAGE_KEY);
       if (saved) setSearchQuery(saved);
     } catch {}
+
+    const f = loadFilters();
+    if (f.category) setSelectedCategory(f.category);
+    if (f.sort !== "default") setSelectedSort(f.sort);
+    if (f.dir !== "desc") setSortDirection(f.dir);
+    if (f.sort2) setSelectedSort2(f.sort2);
+    if (f.dir2 !== "desc") setSortDirection2(f.dir2);
+    if (f.view !== "card") setViewMode(f.view);
   }, []);
 
-  // Persist search term to sessionStorage
+  // Persist search term
   useEffect(() => {
     try {
       if (searchQuery) {
@@ -61,6 +153,18 @@ export function ChallengeList({
       }
     } catch {}
   }, [searchQuery]);
+
+  // Persist filter/sort/view state
+  useEffect(() => {
+    saveFilters({
+      category: selectedCategory,
+      sort: selectedSort,
+      dir: sortDirection,
+      sort2: selectedSort2,
+      dir2: sortDirection2,
+      view: viewMode,
+    });
+  }, [selectedCategory, selectedSort, sortDirection, selectedSort2, sortDirection2, viewMode]);
 
   const categories = useMemo(() => {
     const cats = [...new Set(challenges.flatMap((c) => c.category))];
@@ -80,52 +184,16 @@ export function ChallengeList({
       return true;
     });
 
-    const dir = sortDirection === "desc" ? 1 : -1;
+    const primaryCmp = makeSortComparator(selectedSort, sortDirection, voteData, saveCounts, completionCounts);
+    const secondaryCmp = selectedSort2
+      ? makeSortComparator(selectedSort2, sortDirection2, voteData, saveCounts, completionCounts)
+      : null;
 
-    if (selectedSort === "new") {
+    if (primaryCmp) {
       result = [...result].sort((a, b) => {
-        return (new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) * dir;
-      });
-    } else if (selectedSort === "popular") {
-      result = [...result].sort((a, b) => {
-        const aData = voteData[a.id] ?? { upvotes: 0, downvotes: 0 };
-        const bData = voteData[b.id] ?? { upvotes: 0, downvotes: 0 };
-        const aScore = aData.upvotes - aData.downvotes;
-        const bScore = bData.upvotes - bData.downvotes;
-        return (bScore - aScore) * dir;
-      });
-    } else if (selectedSort === "controversial") {
-      result = [...result].sort((a, b) => {
-        const aData = voteData[a.id] ?? { upvotes: 0, downvotes: 0 };
-        const bData = voteData[b.id] ?? { upvotes: 0, downvotes: 0 };
-        return (getControversy(bData) - getControversy(aData)) * dir;
-      });
-    } else if (selectedSort === "points") {
-      result = [...result].sort((a, b) => {
-        const aPoints = a.points ?? 0;
-        const bPoints = b.points ?? 0;
-        return (bPoints - aPoints) * dir;
-      });
-    } else if (selectedSort === "saves") {
-      result = [...result].sort((a, b) => {
-        const aCount = saveCounts?.[a.id] ?? 0;
-        const bCount = saveCounts?.[b.id] ?? 0;
-        return (bCount - aCount) * dir;
-      });
-    } else if (selectedSort === "completions") {
-      result = [...result].sort((a, b) => {
-        const aCount = completionCounts?.[a.id] ?? 0;
-        const bCount = completionCounts?.[b.id] ?? 0;
-        return (bCount - aCount) * dir;
-      });
-    } else if (selectedSort === "time") {
-      const timeRank: Record<string, number> = {
-        "Hours": 1, "Days": 2, "Weeks": 3, "Months": 4, "Full Year": 5, "IDEK": 6,
-      };
-      result = [...result].sort((a, b) => {
-        const aRank = timeRank[a.estimated_time] ?? 6;
-        const bRank = timeRank[b.estimated_time] ?? 6;
-        return (aRank - bRank) * dir;
+        const primary = primaryCmp(a, b);
+        if (primary !== 0 || !secondaryCmp) return primary;
+        return secondaryCmp(a, b);
       });
     }
 
@@ -136,10 +204,26 @@ export function ChallengeList({
     searchQuery,
     selectedSort,
     sortDirection,
+    selectedSort2,
+    sortDirection2,
     voteData,
     saveCounts,
     completionCounts,
   ]);
+
+  // Auto-clear sort2 if it matches primary sort
+  const handleSortChange = (sort: SortOption) => {
+    setSelectedSort(sort);
+    setSortDirection("desc");
+    if (selectedSort2 === sort) {
+      setSelectedSort2(null);
+    }
+  };
+
+  const handleSort2Change = (sort: SortOption | null) => {
+    setSelectedSort2(sort);
+    setSortDirection2("desc");
+  };
 
   return (
     <div className="space-y-6">
@@ -149,41 +233,75 @@ export function ChallengeList({
         searchQuery={searchQuery}
         selectedSort={selectedSort}
         sortDirection={sortDirection}
+        selectedSort2={selectedSort2}
+        sortDirection2={sortDirection2}
+        viewMode={viewMode}
         onCategoryChange={setSelectedCategory}
         onSearchChange={setSearchQuery}
-        onSortChange={(sort) => {
-          setSelectedSort(sort);
-          setSortDirection("desc");
-        }}
+        onSortChange={handleSortChange}
         onSortDirectionToggle={() =>
           setSortDirection((d) => (d === "desc" ? "asc" : "desc"))
         }
+        onSort2Change={handleSort2Change}
+        onSort2DirectionToggle={() =>
+          setSortDirection2((d) => (d === "desc" ? "asc" : "desc"))
+        }
+        onViewModeChange={setViewMode}
       />
 
       <p className="text-sm text-muted-foreground">
         {filtered.length} challenge{filtered.length !== 1 ? "s" : ""}
       </p>
 
-      <div className="challenge-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((challenge) => {
-          const v = voteData[challenge.id] ?? { upvotes: 0, downvotes: 0 };
-          return (
-            <ChallengeCard
-              key={challenge.id}
-              challenge={challenge}
-              isSaved={savedChallengeIds?.includes(challenge.id)}
-              upvotes={v.upvotes}
-              downvotes={v.downvotes}
-              userVote={(userVotes[challenge.id] as 1 | -1) ?? null}
-              hasNote={userNoteIds?.includes(challenge.id)}
-              saveCount={saveCounts?.[challenge.id] ?? 0}
-              completionCount={completionCounts?.[challenge.id] ?? 0}
-              submitterDisplayName={challenge.submitted_by ? submitterNames?.[challenge.submitted_by] : undefined}
-              isLoggedIn={isLoggedIn}
-            />
-          );
-        })}
-      </div>
+      {viewMode === "card" ? (
+        <div className="challenge-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((challenge) => {
+            const v = voteData[challenge.id] ?? { upvotes: 0, downvotes: 0 };
+            return (
+              <ChallengeCard
+                key={challenge.id}
+                challenge={challenge}
+                isSaved={savedChallengeIds?.includes(challenge.id)}
+                upvotes={v.upvotes}
+                downvotes={v.downvotes}
+                userVote={(userVotes[challenge.id] as 1 | -1) ?? null}
+                hasNote={userNoteIds?.includes(challenge.id)}
+                saveCount={saveCounts?.[challenge.id] ?? 0}
+                completionCount={completionCounts?.[challenge.id] ?? 0}
+                submitterDisplayName={challenge.submitted_by ? submitterNames?.[challenge.submitted_by] : undefined}
+                isLoggedIn={isLoggedIn}
+              />
+            );
+          })}
+        </div>
+      ) : (
+        <div className="challenge-table">
+          <ChallengeTableHeader
+            selectedSort={selectedSort}
+            sortDirection={sortDirection}
+            onSortChange={handleSortChange}
+            onSortDirectionToggle={() =>
+              setSortDirection((d) => (d === "desc" ? "asc" : "desc"))
+            }
+          />
+          {filtered.map((challenge) => {
+            const v = voteData[challenge.id] ?? { upvotes: 0, downvotes: 0 };
+            return (
+              <ChallengeTableRow
+                key={challenge.id}
+                challenge={challenge}
+                isSaved={savedChallengeIds?.includes(challenge.id)}
+                upvotes={v.upvotes}
+                downvotes={v.downvotes}
+                userVote={(userVotes[challenge.id] as 1 | -1) ?? null}
+                saveCount={saveCounts?.[challenge.id] ?? 0}
+                completionCount={completionCounts?.[challenge.id] ?? 0}
+                isLoggedIn={isLoggedIn}
+              />
+            );
+          })}
+        </div>
+      )}
 
       {filtered.length === 0 && (
         <p className="py-12 text-center text-muted-foreground">

@@ -23,6 +23,7 @@ export interface VoteData {
 
 export type SortOption = "default" | "new" | "popular" | "saves" | "controversial" | "points" | "completions" | "time";
 export type SortDirection = "desc" | "asc";
+export type ViewMode = "card" | "table";
 
 export interface UserProfile {
   id: string;
