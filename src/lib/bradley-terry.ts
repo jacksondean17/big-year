@@ -21,7 +21,11 @@ export interface BradleyTerryResult {
 
 const MAX_ITERATIONS = 1000;
 const CONVERGENCE_THRESHOLD = 1e-6;
-const FLOOR_VALUE = 1e-8;
+// Bayesian regularization: treat each item as having played PRIOR_DRAWS virtual
+// games against a mean opponent (θ=1), winning and losing equally. Prevents
+// θ from collapsing to 0 (or exploding) for items with one-sided results, so
+// sparsely-compared items stay reachable in the adaptive pair matcher.
+const PRIOR_DRAWS = 1;
 
 export function computeBradleyTerry(
   comparisons: Comparison[]
@@ -38,9 +42,9 @@ export function computeBradleyTerry(
   }
   const ids = [...challengeIds];
 
-  // Count wins per challenge
+  // Count wins per challenge (with prior: PRIOR_DRAWS virtual wins per item)
   const wins = new Map<number, number>();
-  for (const id of ids) wins.set(id, 0);
+  for (const id of ids) wins.set(id, PRIOR_DRAWS);
   for (const c of comparisons) {
     wins.set(c.winner_id, wins.get(c.winner_id)! + 1);
   }
@@ -74,22 +78,18 @@ export function computeBradleyTerry(
 
     for (const i of ids) {
       const w_i = wins.get(i)!;
-      if (w_i === 0) {
-        // No wins: assign floor value
-        newTheta.set(i, FLOOR_VALUE);
-        continue;
-      }
 
       // MM update: θ_i = w_i / Σ_j(n_ij / (θ_i + θ_j))
+      // With prior: add 2*PRIOR_DRAWS virtual comparisons vs θ=1.
       let denomSum = 0;
       for (const j of opponents.get(i)!) {
         const key = pairKey(i, j);
         const n_ij = pairCounts.get(key)!;
         denomSum += n_ij / (theta.get(i)! + theta.get(j)!);
       }
+      denomSum += (2 * PRIOR_DRAWS) / (theta.get(i)! + 1);
 
-      const newVal = denomSum > 0 ? w_i / denomSum : FLOOR_VALUE;
-      newTheta.set(i, newVal);
+      newTheta.set(i, w_i / denomSum);
     }
 
     // Normalize: geometric mean = 1
@@ -106,10 +106,8 @@ export function computeBradleyTerry(
     for (const id of ids) {
       const old = theta.get(id)!;
       const cur = newTheta.get(id)!;
-      if (old > FLOOR_VALUE) {
-        const relChange = Math.abs(cur - old) / old;
-        if (relChange > maxRelChange) maxRelChange = relChange;
-      }
+      const relChange = Math.abs(cur - old) / old;
+      if (relChange > maxRelChange) maxRelChange = relChange;
     }
 
     // Update theta

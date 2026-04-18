@@ -36,6 +36,14 @@ export default async function RankingPage() {
     btScores[id] = score;
   }
 
+  // Per-challenge comparison counts — used for the exploration bonus so
+  // under-sampled items get prioritized by the matcher.
+  const comparisonCounts: Record<number, number> = {};
+  for (const c of allComparisons) {
+    comparisonCounts[c.winner_id] = (comparisonCounts[c.winner_id] ?? 0) + 1;
+    comparisonCounts[c.loser_id] = (comparisonCounts[c.loser_id] ?? 0) + 1;
+  }
+
   const temperature = tempSetting ? parseFloat(tempSetting) : 1.5;
 
   return (
@@ -49,6 +57,7 @@ export default async function RankingPage() {
         judgedPairs={judgedPairs}
         skippedPairs={skippedPairs}
         btScores={btScores}
+        comparisonCounts={comparisonCounts}
         temperature={temperature}
       />
     </div>

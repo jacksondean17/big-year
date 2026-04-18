@@ -37,6 +37,7 @@ interface Props {
   judgedPairs: [number, number][];
   skippedPairs: [number, number][];
   btScores: Record<number, number>;
+  comparisonCounts: Record<number, number>;
   temperature: number;
 }
 
@@ -45,6 +46,7 @@ export function RankingComparison({
   judgedPairs,
   skippedPairs,
   btScores,
+  comparisonCounts,
   temperature,
 }: Props) {
   const [usedPairs, setUsedPairs] = useState<Set<PairKey>>(() => {
@@ -112,8 +114,12 @@ export function RankingComparison({
       return null;
     }
 
-    // Adaptive pair selection: weight by BT score closeness
-    // weight = exp(-|ln(θ_i) - ln(θ_j)| / temperature)
+    // Adaptive pair selection: combine two signals.
+    //   closeness:   exp(-|Δ ln(θ)| / temperature)       — info at decision boundary
+    //   exploration: 1 / sqrt(min(n_i, n_j) + 1)         — favor under-sampled items
+    // Multiplying them means under-sampled items beat the exponential distance
+    // penalty, so newly added or stranded items still get matched against the rest
+    // of the pool instead of clustering.
     const candidates: { i: number; j: number; weight: number }[] = [];
     let totalWeight = 0;
 
@@ -125,7 +131,13 @@ export function RankingComparison({
         const scoreI = btScores[challengeIds[ii]] ?? 1;
         const scoreJ = btScores[challengeIds[jj]] ?? 1;
         const diff = Math.abs(Math.log(scoreI) - Math.log(scoreJ));
-        const weight = Math.exp(-diff / temperature);
+        const closeness = Math.exp(-diff / temperature);
+
+        const countI = comparisonCounts[challengeIds[ii]] ?? 0;
+        const countJ = comparisonCounts[challengeIds[jj]] ?? 0;
+        const exploration = 1 / Math.sqrt(Math.min(countI, countJ) + 1);
+
+        const weight = closeness * exploration;
 
         candidates.push({ i: ii, j: jj, weight });
         totalWeight += weight;
@@ -151,7 +163,7 @@ export function RankingComparison({
     return Math.random() < 0.5
       ? [challengeMap.get(challengeIds[last.i])!, challengeMap.get(challengeIds[last.j])!]
       : [challengeMap.get(challengeIds[last.j])!, challengeMap.get(challengeIds[last.i])!];
-  }, [challengeIds, challengeMap, usedPairs, btScores, temperature]);
+  }, [challengeIds, challengeMap, usedPairs, btScores, comparisonCounts, temperature]);
 
   const startAfkTimer = useCallback(() => {
     if (afkTimerRef.current) clearTimeout(afkTimerRef.current);

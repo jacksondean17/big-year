@@ -116,10 +116,16 @@ export default async function AdminRankingsPage() {
     itemCompCounts.set(row.winner_id, (itemCompCounts.get(row.winner_id) ?? 0) + 1);
     itemCompCounts.set(row.loser_id, (itemCompCounts.get(row.loser_id) ?? 0) + 1);
   }
-  const itemCompValues = [...itemCompCounts.values()].sort((a, b) => a - b);
+  // Include uncompared challenges as 0 so the distribution reflects all items.
+  const itemCompValues = challenges
+    .map((c) => itemCompCounts.get(c.id) ?? 0)
+    .sort((a, b) => a - b);
   const medianCompsPerItem = median(itemCompValues);
   const minCompsPerItem = itemCompValues.length > 0 ? itemCompValues[0] : 0;
   const maxCompsPerItem = itemCompValues.length > 0 ? itemCompValues[itemCompValues.length - 1] : 0;
+  // Threshold roughly where BT becomes stable (log₂(N) per item).
+  const undersampledThreshold = Math.max(4, Math.round(Math.log2(Math.max(totalItems, 2))));
+  const undersampledCount = itemCompValues.filter((v) => v < undersampledThreshold).length;
 
   // Per-challenge avg response time (across all comparisons involving that challenge)
   const challengeTimeSums = new Map<number, { sum: number; count: number }>();
@@ -287,6 +293,11 @@ export default async function AdminRankingsPage() {
             value={medianCompsPerItem != null ? medianCompsPerItem : "—"}
           />
           <StatCard
+            label={`Under-sampled (< ${undersampledThreshold})`}
+            sub="items below stable-BT threshold"
+            value={`${undersampledCount} / ${totalItems}`}
+          />
+          <StatCard
             label="BT Iterations"
             value={btResult.iterations}
           />
@@ -296,6 +307,11 @@ export default async function AdminRankingsPage() {
       {/* BT Score Distribution Chart */}
       {rankedChallenges.length > 0 && (
         <BtChart challenges={rankedChallenges} />
+      )}
+
+      {/* Comparison count histogram */}
+      {itemCompValues.length > 0 && (
+        <CompCountHistogram counts={itemCompValues} />
       )}
 
       {/* Decision Time Chart */}
@@ -826,6 +842,90 @@ function BtChart({
               <title suppressHydrationWarning>#{p.rank} {p.title} — ln(θ)={p.logScore.toFixed(2)}</title>
             </circle>
           ))}
+        </svg>
+      </div>
+    </section>
+  );
+}
+
+function CompCountHistogram({ counts }: { counts: number[] }) {
+  const W = 800;
+  const H = 260;
+  const PAD = { top: 20, right: 20, bottom: 40, left: 60 };
+  const plotW = W - PAD.left - PAD.right;
+  const plotH = H - PAD.top - PAD.bottom;
+
+  // Bucket boundaries — designed to surface under-sampled items
+  const buckets: { label: string; min: number; max: number }[] = [
+    { label: "0", min: 0, max: 0 },
+    { label: "1–2", min: 1, max: 2 },
+    { label: "3–5", min: 3, max: 5 },
+    { label: "6–10", min: 6, max: 10 },
+    { label: "11–20", min: 11, max: 20 },
+    { label: "21–30", min: 21, max: 30 },
+    { label: "31–50", min: 31, max: 50 },
+    { label: "50+", min: 51, max: Infinity },
+  ];
+  const bucketCounts = buckets.map(
+    (b) => counts.filter((c) => c >= b.min && c <= b.max).length
+  );
+  const maxBucket = Math.max(...bucketCounts, 1);
+
+  const barWidth = plotW / buckets.length;
+
+  return (
+    <section>
+      <h3 className="text-lg font-semibold mb-1">Comparisons per item</h3>
+      <p className="text-xs text-muted-foreground mb-3">
+        How many challenges have N comparisons — under-sampled buckets on the left should be small
+      </p>
+      <div className="rounded-lg border bg-card p-4 overflow-x-auto">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-3xl" style={{ minWidth: 400 }}>
+          {bucketCounts.map((n, i) => {
+            const barH = (n / maxBucket) * plotH;
+            const x = PAD.left + i * barWidth + barWidth * 0.15;
+            const y = PAD.top + plotH - barH;
+            const w = barWidth * 0.7;
+            const isUnder = i < 3; // 0, 1-2, 3-5 are the worrying buckets
+            return (
+              <g key={buckets[i].label}>
+                <rect
+                  x={x}
+                  y={y}
+                  width={w}
+                  height={barH}
+                  fill={isUnder ? "hsl(0, 70%, 55%)" : "hsl(45, 80%, 55%)"}
+                  opacity={0.8}
+                />
+                <text
+                  x={x + w / 2}
+                  y={y - 4}
+                  textAnchor="middle"
+                  fontSize={11}
+                  fill="currentColor"
+                  opacity={0.7}
+                >
+                  {n}
+                </text>
+                <text
+                  x={x + w / 2}
+                  y={H - 8}
+                  textAnchor="middle"
+                  fontSize={11}
+                  fill="currentColor"
+                  opacity={0.6}
+                >
+                  {buckets[i].label}
+                </text>
+              </g>
+            );
+          })}
+          <text x={PAD.left - 8} y={12} textAnchor="end" fontSize={11} fill="currentColor" opacity={0.6}>
+            # items
+          </text>
+          <text x={W / 2} y={H - 0} textAnchor="middle" fontSize={11} fill="currentColor" opacity={0.6}>
+            Comparisons per item
+          </text>
         </svg>
       </div>
     </section>
