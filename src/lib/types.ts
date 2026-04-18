@@ -12,6 +12,10 @@ export interface Challenge {
   courage: number | null;
   story_power: number | null;
   commitment: number | null;
+  is_benchmark?: boolean;
+  benchmark_points?: number | null;
+  ln_theta_override?: number | null;
+  mapped_points?: number | null;
 }
 
 export type UserVoteType = 1 | -1 | null;

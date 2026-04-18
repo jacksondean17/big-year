@@ -69,8 +69,15 @@ src/
 │   ├── auth-button.tsx       # Login/logout
 │   ├── calendar-subscribe-buttons.tsx  # Google/iCal/Outlook subscribe buttons
 │   ├── ranking-comparison.tsx # Pairwise point-judge UI with adaptive matcher
-│   ├── admin/benchmark-lab.tsx # Benchmark → points mapping experiment in /admin/rankings
+│   ├── admin/benchmark-lab.tsx # DB-backed benchmark → points mapping editor in /admin/rankings
 │   └── user-*.tsx            # User list and cards
+├── app/admin/                # Admin-only routes (dev-mode bypasses auth guard)
+│   ├── layout.tsx            # Admin shell + auth gate (skipped when NODE_ENV=development)
+│   └── rankings/
+│       ├── page.tsx          # BT ranking + Benchmark Lab + diagnostic charts
+│       └── charts.tsx        # "use client" SVG charts (BtChart, DecisionTimeChart, CompCountHistogram)
+├── app/actions/
+│   └── admin-benchmark.ts    # setBenchmark / setRankOverride / commitBenchmarkMapping server actions
 ├── lib/
 │   ├── supabase/{client,server}.ts  # Supabase client setup
 │   ├── challenges.ts         # Challenge queries
@@ -83,6 +90,8 @@ src/
 │   ├── users.ts              # User queries
 │   ├── savers.ts             # Who saved what
 │   ├── discord.ts            # Discord API (get guild nickname)
+│   ├── bradley-terry.ts      # MM-iteration BT ranking (pure TS, runs server-side)
+│   ├── benchmark-mapping.ts  # Pure interpolate / effectiveLnTheta / projectPoints helpers (shared client+server)
 │   └── types.ts              # TypeScript interfaces
 supabase/
 ├── migrations/               # Numbered SQL migrations (schema evolution)
@@ -126,6 +135,19 @@ See `.env.local.example`:
 3. **RLS everywhere** - All tables use Supabase Row Level Security
 4. **Discord integration** - On login, fetches user's Discord guild nickname and stores in `profiles.guild_nickname`
 5. **Optimistic UI** - Vote and save buttons update immediately, server action runs in background
+6. **Admin auth pattern** - Both `src/app/admin/layout.tsx` and the admin server actions check `ADMIN_USER_IDS` against the logged-in user, but bypass the guard entirely when `NODE_ENV === "development"` so local testing works without auth.
+
+## Benchmark Lab workflow (`/admin/rankings`)
+
+The Benchmark Lab is a DB-backed editor — no localStorage. Three buttons in the header drive the two-stage write flow:
+
+- **Discard edits** — drops local edits, reverts to last-known DB state.
+- **Commit to Database (N)** — fires `setBenchmark` / `setRankOverride` for every dirty row in `Promise.all`. Successful rows absorb into the saved baseline; failed rows stay dirty. Dirty inputs render with amber (bench) or sky (rank override) borders so pending edits are visible at a glance.
+- **Commit mapping (N)** — calls `commitBenchmarkMapping()`, which paginates `challenge_comparisons`, runs Bradley-Terry, builds anchors from `is_benchmark` rows, and `upsert`s `mapped_points` for every challenge in one statement (single SQL = implicit PG transaction = atomic). Challenges with no comparisons get `mapped_points = NULL`.
+
+The "Projected" column is a live preview from in-memory state. The "Mapped" column shows the last-committed `mapped_points`. Drift between them = uncommitted mapping.
+
+User-facing point totals still read `challenges.points` (trigger-computed from dimensions). `mapped_points` is populated but no view reads it yet — that cutover is a future migration.
 
 ## Challenge Data Structure
 

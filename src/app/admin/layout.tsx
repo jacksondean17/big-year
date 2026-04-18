@@ -6,14 +6,16 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  if (process.env.NODE_ENV !== "development") {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  const adminIds = (process.env.ADMIN_USER_IDS ?? "").split(",").map((s) => s.trim());
-  if (!user || !adminIds.includes(user.id)) {
-    redirect("/");
+    const adminIds = (process.env.ADMIN_USER_IDS ?? "").split(",").map((s) => s.trim());
+    if (!user || !adminIds.includes(user.id)) {
+      redirect("/");
+    }
   }
 
   return (

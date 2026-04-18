@@ -1,7 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  interpolate,
+  effectiveLnTheta,
+  type Anchor,
+} from "@/lib/benchmark-mapping";
+import {
+  setBenchmark,
+  setRankOverride,
+  commitBenchmarkMapping,
+} from "@/app/actions/admin-benchmark";
 
 export interface LabChallenge {
   id: number;
@@ -14,185 +24,234 @@ export interface LabChallenge {
   points: number | null;
   isBenchmark: boolean;
   benchmarkPoints: number | null;
+  lnThetaOverride: number | null;
+  mappedPoints: number | null;
 }
 
 interface Props {
   challenges: LabChallenge[];
 }
 
-const STORAGE_KEY = "benchmark-lab-overrides-v1";
 const TOP_PERCENTILE_CLAMP = 0.98;
 
-function interpolate(
-  lnTheta: number,
-  anchors: { lnTheta: number; points: number }[]
-): number | null {
-  if (anchors.length === 0) return null;
-  if (anchors.length === 1) return anchors[0].points;
-  const sorted = [...anchors].sort((a, b) => a.lnTheta - b.lnTheta);
-
-  // Below range: extrapolate along first segment
-  if (lnTheta <= sorted[0].lnTheta) {
-    const [a, b] = sorted;
-    const slope = (b.points - a.points) / (b.lnTheta - a.lnTheta);
-    return a.points + slope * (lnTheta - a.lnTheta);
-  }
-  // Above range: extrapolate along last segment
-  if (lnTheta >= sorted[sorted.length - 1].lnTheta) {
-    const a = sorted[sorted.length - 2];
-    const b = sorted[sorted.length - 1];
-    const slope = (b.points - a.points) / (b.lnTheta - a.lnTheta);
-    return b.points + slope * (lnTheta - b.lnTheta);
-  }
-  // In range: find bracket
-  for (let i = 0; i < sorted.length - 1; i++) {
-    const a = sorted[i];
-    const b = sorted[i + 1];
-    if (lnTheta >= a.lnTheta && lnTheta <= b.lnTheta) {
-      const t = (lnTheta - a.lnTheta) / (b.lnTheta - a.lnTheta);
-      return a.points + t * (b.points - a.points);
-    }
-  }
-  return null;
-}
-
 export function BenchmarkLab({ challenges }: Props) {
-  // Session overrides: map from challenge id to entered Bench Pts.
-  // Seeded from DB benchmark_points for existing benchmarks.
-  const [overrides, setOverrides] = useState<Record<number, number>>(() => {
+  // Seeds from DB. `saved*` track the last-known DB state so we can diff
+  // against the editable state and know what's dirty.
+  const seedBench = useMemo(() => {
     const seed: Record<number, number> = {};
     for (const c of challenges) {
       if (c.benchmarkPoints != null) seed[c.id] = c.benchmarkPoints;
     }
     return seed;
-  });
-  const [hydrated, setHydrated] = useState(false);
-  // Hide challenges with too few comparisons so noisy items don't anchor or distort the curve.
+  }, [challenges]);
+  const seedRank = useMemo(() => {
+    const seed: Record<number, number> = {};
+    for (const c of challenges) {
+      if (c.lnThetaOverride != null) seed[c.id] = c.lnThetaOverride;
+    }
+    return seed;
+  }, [challenges]);
+
+  const [overrides, setOverrides] = useState<Record<number, number>>(seedBench);
+  const [rankOverrides, setRankOverridesState] = useState<
+    Record<number, number>
+  >(seedRank);
+  const [savedBench, setSavedBench] = useState<Record<number, number>>(seedBench);
+  const [savedRank, setSavedRank] = useState<Record<number, number>>(seedRank);
+
   const [minComparisons, setMinComparisons] = useState(0);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [isSavingEdits, startSaveEdits] = useTransition();
+  const [isCommitting, startCommit] = useTransition();
 
   const visibleChallenges = useMemo(
     () => challenges.filter((c) => c.wins + c.losses >= minComparisons),
     [challenges, minComparisons]
   );
 
-  // Restore from localStorage on mount
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as Record<string, number>;
-        const restored: Record<number, number> = {};
-        for (const [k, v] of Object.entries(parsed)) {
-          const n = Number(v);
-          if (Number.isFinite(n)) restored[Number(k)] = n;
-        }
-        setOverrides(restored);
-      }
-    } catch {
-      // ignore corrupt storage
-    }
-    setHydrated(true);
-  }, []);
+  // Effective ln(θ): override if set, else ln(BT score)
+  const effectiveLn = (c: LabChallenge): number =>
+    effectiveLnTheta(c.btScore, rankOverrides[c.id] ?? null);
 
-  // Persist on change
-  useEffect(() => {
-    if (!hydrated) return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
-    } catch {
-      // ignore quota errors
-    }
-  }, [overrides, hydrated]);
+  // Sort visible challenges by effective ln(θ) descending so the table reflects the active mapping rank
+  const sortedVisible = useMemo(
+    () => [...visibleChallenges].sort((a, b) => effectiveLn(b) - effectiveLn(a)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [visibleChallenges, rankOverrides]
+  );
 
-  const anchors = useMemo(() => {
-    const list: { lnTheta: number; points: number }[] = [];
+  const anchors = useMemo<Anchor[]>(() => {
+    const list: Anchor[] = [];
     for (const c of visibleChallenges) {
       const v = overrides[c.id];
       if (v != null && Number.isFinite(v)) {
-        list.push({ lnTheta: Math.log(c.btScore), points: v });
+        list.push({ lnTheta: effectiveLn(c), points: v });
       }
     }
     return list;
-  }, [overrides, visibleChallenges]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overrides, visibleChallenges, rankOverrides]);
 
   const projected = useMemo(() => {
     const m = new Map<number, number | null>();
     for (const c of visibleChallenges) {
-      const override = overrides[c.id];
-      if (override != null && Number.isFinite(override)) {
-        m.set(c.id, override);
+      const benchOverride = overrides[c.id];
+      if (benchOverride != null && Number.isFinite(benchOverride)) {
+        m.set(c.id, benchOverride);
         continue;
       }
-      const raw = interpolate(Math.log(c.btScore), anchors);
+      const raw = interpolate(effectiveLn(c), anchors);
       if (raw == null) {
         m.set(c.id, null);
       } else {
-        // Clamp projected to >= 1 so we don't show silly negatives
         m.set(c.id, Math.max(1, Math.round(raw)));
       }
     }
     return m;
-  }, [visibleChallenges, anchors, overrides]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleChallenges, anchors, overrides, rankOverrides]);
 
-  const handleInput = (id: number, raw: string) => {
-    if (raw.trim() === "") {
-      setOverrides((prev) => {
-        const next = { ...prev };
-        delete next[id];
+  const handleBenchInput = (id: number, raw: string) => {
+    const trimmed = raw.trim();
+    const isClear = trimmed === "";
+    const n = isClear ? null : Number(trimmed);
+    if (!isClear && (n == null || !Number.isFinite(n))) return;
+
+    setOverrides((curr) => {
+      const next = { ...curr };
+      if (n == null) delete next[id];
+      else next[id] = n;
+      return next;
+    });
+  };
+
+  const handleRankInput = (id: number, raw: string) => {
+    const trimmed = raw.trim();
+    const isClear = trimmed === "";
+    const n = isClear ? null : Number(trimmed);
+    if (!isClear && (n == null || !Number.isFinite(n))) return;
+
+    setRankOverridesState((curr) => {
+      const next = { ...curr };
+      if (n == null) delete next[id];
+      else next[id] = n;
+      return next;
+    });
+  };
+
+  // Diff local edits vs last-known DB state → list of changes to send
+  const pendingBenchChanges = useMemo(() => {
+    const ids = new Set([
+      ...Object.keys(overrides).map(Number),
+      ...Object.keys(savedBench).map(Number),
+    ]);
+    const changes: { id: number; points: number | null }[] = [];
+    for (const id of ids) {
+      const cur = overrides[id];
+      const prev = savedBench[id];
+      if (cur == null && prev == null) continue;
+      if (cur != null && prev != null && cur === prev) continue;
+      changes.push({ id, points: cur ?? null });
+    }
+    return changes;
+  }, [overrides, savedBench]);
+
+  const pendingRankChanges = useMemo(() => {
+    const ids = new Set([
+      ...Object.keys(rankOverrides).map(Number),
+      ...Object.keys(savedRank).map(Number),
+    ]);
+    const changes: { id: number; lnTheta: number | null }[] = [];
+    for (const id of ids) {
+      const cur = rankOverrides[id];
+      const prev = savedRank[id];
+      if (cur == null && prev == null) continue;
+      if (cur != null && prev != null && cur === prev) continue;
+      changes.push({ id, lnTheta: cur ?? null });
+    }
+    return changes;
+  }, [rankOverrides, savedRank]);
+
+  const pendingEditCount = pendingBenchChanges.length + pendingRankChanges.length;
+
+  const handleCommitEdits = () => {
+    if (pendingEditCount === 0) return;
+    setStatusMessage(null);
+    startSaveEdits(async () => {
+      const benchResults = await Promise.all(
+        pendingBenchChanges.map((e) => setBenchmark(e.id, e.points))
+      );
+      const rankResults = await Promise.all(
+        pendingRankChanges.map((e) => setRankOverride(e.id, e.lnTheta))
+      );
+
+      const failures: string[] = [];
+      benchResults.forEach((r, i) => {
+        if (!r.success)
+          failures.push(
+            `Bench id=${pendingBenchChanges[i].id}: ${r.error ?? "unknown"}`
+          );
+      });
+      rankResults.forEach((r, i) => {
+        if (!r.success)
+          failures.push(
+            `Rank id=${pendingRankChanges[i].id}: ${r.error ?? "unknown"}`
+          );
+      });
+
+      // Baseline absorbs successful writes only; failed rows stay dirty.
+      setSavedBench((curr) => {
+        const next = { ...curr };
+        benchResults.forEach((r, i) => {
+          if (!r.success) return;
+          const { id, points } = pendingBenchChanges[i];
+          if (points == null) delete next[id];
+          else next[id] = points;
+        });
         return next;
       });
-      return;
-    }
-    const n = Number(raw);
-    if (!Number.isFinite(n)) return;
-    setOverrides((prev) => ({ ...prev, [id]: n }));
+      setSavedRank((curr) => {
+        const next = { ...curr };
+        rankResults.forEach((r, i) => {
+          if (!r.success) return;
+          const { id, lnTheta } = pendingRankChanges[i];
+          if (lnTheta == null) delete next[id];
+          else next[id] = lnTheta;
+        });
+        return next;
+      });
+
+      if (failures.length === 0) {
+        setStatusMessage(
+          `Saved ${benchResults.length} bench + ${rankResults.length} rank edits.`
+        );
+      } else {
+        setStatusMessage(
+          `Saved with ${failures.length} failure(s): ${failures.slice(0, 3).join("; ")}${failures.length > 3 ? "…" : ""}`
+        );
+      }
+    });
   };
 
-  const handleReset = () => {
-    if (
-      !confirm(
-        "Clear all session Bench Pts? This will also wipe the seed from DB benchmark_points."
-      )
-    )
-      return;
-    setOverrides({});
+  const handleDiscardEdits = () => {
+    setOverrides(savedBench);
+    setRankOverridesState(savedRank);
+    setStatusMessage(null);
   };
 
-  const handleReseedFromDb = () => {
-    const seed: Record<number, number> = {};
-    for (const c of challenges) {
-      if (c.benchmarkPoints != null) seed[c.id] = c.benchmarkPoints;
-    }
-    setOverrides(seed);
-  };
-
-  const handleCopySql = async () => {
-    const lines: string[] = [];
-    lines.push(
-      "-- Benchmark updates generated from admin/rankings Benchmark Lab"
-    );
-    lines.push("-- Review carefully before running against prod!");
-    lines.push("BEGIN;");
-    lines.push("UPDATE challenges SET is_benchmark=false, benchmark_points=NULL WHERE is_benchmark=true;");
-    let exported = 0;
-    for (const c of visibleChallenges) {
-      const v = overrides[c.id];
-      if (v == null) continue;
-      const title = c.title.replace(/'/g, "''");
-      lines.push(
-        `UPDATE challenges SET is_benchmark=true, benchmark_points=${Math.round(v)} WHERE id=${c.id}; -- ${title}`
-      );
-      exported++;
-    }
-    lines.push("COMMIT;");
-    const sql = lines.join("\n");
-    try {
-      await navigator.clipboard.writeText(sql);
-      alert(`Copied ${exported} UPDATE statements to clipboard.`);
-    } catch {
-      // Fallback: show in a prompt so user can copy manually
-      prompt("Copy this SQL:", sql);
-    }
+  const handleCommitMapping = () => {
+    setStatusMessage(null);
+    startCommit(() => {
+      commitBenchmarkMapping().then((res) => {
+        if (res.success) {
+          setStatusMessage(
+            `Committed ${res.updated ?? 0} rows. Refresh to see updated Mapped column.`
+          );
+        } else {
+          setStatusMessage(`Commit failed: ${res.error ?? "unknown error"}`);
+        }
+      });
+    });
   };
 
   const anchorCount = Object.keys(overrides).length;
@@ -203,9 +262,13 @@ export function BenchmarkLab({ challenges }: Props) {
         <div>
           <h3 className="text-lg font-semibold">Benchmark Lab</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Fill the <strong>Bench Pts</strong> column for a few challenges
-            (the anchors) — the rest get piecewise-linear point projections
-            live. Nothing saves until you run the generated SQL.
+            Set <strong>Bench Pts</strong> on a few challenges (anchors) — the
+            rest get piecewise-linear point projections live. Use{" "}
+            <strong>Manual ln(θ)</strong> to override a row&apos;s rank position
+            for mapping. Edits stay local until you click{" "}
+            <strong>Commit to Database</strong>. Then{" "}
+            <strong>Commit mapping</strong> snapshots the projected values into{" "}
+            <code>mapped_points</code>.
           </p>
         </div>
         <div className="flex gap-2 flex-wrap items-center">
@@ -226,27 +289,54 @@ export function BenchmarkLab({ challenges }: Props) {
               {visibleChallenges.length}/{challenges.length}
             </span>
           </label>
-          <Button size="sm" variant="outline" onClick={handleReseedFromDb}>
-            Re-seed from DB
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleDiscardEdits}
+            disabled={isSavingEdits || pendingEditCount === 0}
+          >
+            Discard edits
           </Button>
-          <Button size="sm" variant="outline" onClick={handleReset}>
-            Clear all
+          <Button
+            size="sm"
+            onClick={handleCommitEdits}
+            disabled={isSavingEdits || pendingEditCount === 0}
+          >
+            {isSavingEdits
+              ? "Saving…"
+              : `Commit to Database${pendingEditCount > 0 ? ` (${pendingEditCount})` : ""}`}
           </Button>
-          <Button size="sm" onClick={handleCopySql} disabled={anchorCount === 0}>
-            Copy SQL ({anchorCount})
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleCommitMapping}
+            disabled={isCommitting || anchorCount === 0}
+          >
+            {isCommitting ? "Committing…" : `Commit mapping (${anchorCount})`}
           </Button>
         </div>
       </div>
 
+      {statusMessage && (
+        <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs">
+          {statusMessage}
+        </div>
+      )}
+
       {/* Curve chart */}
       <CurveChart
-        challenges={visibleChallenges}
+        challenges={sortedVisible}
         projected={projected}
         overrides={overrides}
+        effectiveLn={effectiveLn}
       />
 
       {/* Old vs new points scatter */}
-      <OldVsNewScatter challenges={visibleChallenges} projected={projected} overrides={overrides} />
+      <OldVsNewScatter
+        challenges={sortedVisible}
+        projected={projected}
+        overrides={overrides}
+      />
 
       {/* Table */}
       <div className="rounded-lg border overflow-x-auto">
@@ -257,22 +347,28 @@ export function BenchmarkLab({ challenges }: Props) {
               <th className="px-3 py-2 font-medium">ID</th>
               <th className="px-3 py-2 font-medium">Challenge</th>
               <th className="px-3 py-2 font-medium text-right">ln(θ)</th>
+              <th className="px-3 py-2 font-medium text-right">Manual ln(θ)</th>
               <th className="px-3 py-2 font-medium text-right">W</th>
               <th className="px-3 py-2 font-medium text-right">L</th>
               <th className="px-3 py-2 font-medium text-right">Pts</th>
               <th className="px-3 py-2 font-medium text-right">Bench Pts</th>
               <th className="px-3 py-2 font-medium text-right">Projected</th>
+              <th className="px-3 py-2 font-medium text-right">Mapped</th>
               <th className="px-3 py-2 font-medium text-right">Δ</th>
             </tr>
           </thead>
           <tbody>
-            {visibleChallenges.map((c, i) => {
+            {sortedVisible.map((c, i) => {
               const hasOverride = overrides[c.id] != null;
+              const hasRankOverride = rankOverrides[c.id] != null;
+              const benchDirty = (overrides[c.id] ?? null) !== (savedBench[c.id] ?? null);
+              const rankDirty = (rankOverrides[c.id] ?? null) !== (savedRank[c.id] ?? null);
               const projectedVal = projected.get(c.id);
               const delta =
                 projectedVal != null && c.points != null
                   ? projectedVal - c.points
                   : null;
+              const lnTheta = Math.log(c.btScore);
               return (
                 <tr
                   key={c.id}
@@ -292,17 +388,41 @@ export function BenchmarkLab({ challenges }: Props) {
                   </td>
                   <td className="px-3 py-1.5 font-medium">
                     {hasOverride && (
-                      <span className="inline-block mr-1.5 text-amber-600" title="Anchor">
+                      <span
+                        className="inline-block mr-1.5 text-amber-600"
+                        title="Anchor"
+                      >
                         ★
                       </span>
                     )}
                     {c.title}
                   </td>
                   <td className="px-3 py-1.5 text-right font-mono">
-                    {Math.log(c.btScore).toFixed(2)}
+                    {lnTheta.toFixed(2)}
                   </td>
-                  <td className="px-3 py-1.5 text-right text-green-600">{c.wins}</td>
-                  <td className="px-3 py-1.5 text-right text-red-600">{c.losses}</td>
+                  <td className="px-3 py-1.5 text-right">
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      step="0.1"
+                      value={rankOverrides[c.id] ?? ""}
+                      onChange={(e) => handleRankInput(c.id, e.target.value)}
+                      placeholder="—"
+                      className={`w-16 rounded border bg-background px-2 py-0.5 text-right text-sm font-mono focus:outline-none focus:ring-1 focus:ring-sky-500 ${
+                        rankDirty
+                          ? "border-sky-500 bg-sky-500/10"
+                          : hasRankOverride
+                          ? "border-sky-500/50"
+                          : ""
+                      }`}
+                    />
+                  </td>
+                  <td className="px-3 py-1.5 text-right text-green-600">
+                    {c.wins}
+                  </td>
+                  <td className="px-3 py-1.5 text-right text-red-600">
+                    {c.losses}
+                  </td>
                   <td className="px-3 py-1.5 text-right font-mono text-muted-foreground">
                     {c.points ?? "—"}
                   </td>
@@ -311,13 +431,18 @@ export function BenchmarkLab({ challenges }: Props) {
                       type="number"
                       inputMode="numeric"
                       value={overrides[c.id] ?? ""}
-                      onChange={(e) => handleInput(c.id, e.target.value)}
+                      onChange={(e) => handleBenchInput(c.id, e.target.value)}
                       placeholder="—"
-                      className="w-16 rounded border bg-background px-2 py-0.5 text-right text-sm font-mono focus:outline-none focus:ring-1 focus:ring-amber-500"
+                      className={`w-16 rounded border bg-background px-2 py-0.5 text-right text-sm font-mono focus:outline-none focus:ring-1 focus:ring-amber-500 ${
+                        benchDirty ? "border-amber-500 bg-amber-500/10" : ""
+                      }`}
                     />
                   </td>
                   <td className="px-3 py-1.5 text-right font-mono font-semibold">
                     {projectedVal != null ? projectedVal : "—"}
+                  </td>
+                  <td className="px-3 py-1.5 text-right font-mono text-muted-foreground">
+                    {c.mappedPoints ?? "—"}
                   </td>
                   <td
                     className={`px-3 py-1.5 text-right font-mono text-xs ${
@@ -346,10 +471,12 @@ function CurveChart({
   challenges,
   projected,
   overrides,
+  effectiveLn,
 }: {
   challenges: LabChallenge[];
   projected: Map<number, number | null>;
   overrides: Record<number, number>;
+  effectiveLn: (c: LabChallenge) => number;
 }) {
   const W = 800;
   const H = 280;
@@ -361,7 +488,7 @@ function CurveChart({
     .map((c) => ({
       id: c.id,
       title: c.title,
-      lnTheta: Math.log(c.btScore),
+      lnTheta: effectiveLn(c),
       projected: projected.get(c.id),
       isAnchor: overrides[c.id] != null,
     }))
@@ -383,7 +510,6 @@ function CurveChart({
 
   const lnThetas = points.map((p) => p.lnTheta);
   const pts = points.map((p) => p.projected);
-  // Clamp y-axis upper at 98th percentile so one absurd anchor doesn't squash the rest
   const sortedPts = [...pts].sort((a, b) => a - b);
   const yMaxIdx = Math.floor(sortedPts.length * TOP_PERCENTILE_CLAMP);
   const yMin = Math.min(0, sortedPts[0]);
@@ -433,7 +559,6 @@ function CurveChart({
             </g>
           );
         })}
-        {/* Non-anchor points */}
         {points
           .filter((p) => !p.isAnchor)
           .map((p) => (
@@ -450,7 +575,6 @@ function CurveChart({
               </title>
             </circle>
           ))}
-        {/* Anchor points on top */}
         {points
           .filter((p) => p.isAnchor)
           .map((p) => (
@@ -551,7 +675,6 @@ function OldVsNewScatter({
   const yTicks: number[] = [];
   for (let v = Math.ceil(yLo / yStep) * yStep; v <= yHi; v += yStep) yTicks.push(v);
 
-  // y=x reference: clip to the visible square where both axes cover the value
   const diagLo = Math.max(xLo, yLo);
   const diagHi = Math.min(xHi, yHi);
 
@@ -569,7 +692,6 @@ function OldVsNewScatter({
           className="w-full max-w-3xl"
           style={{ minWidth: 400 }}
         >
-          {/* X grid + ticks */}
           {xTicks.map((v) => (
             <g key={`xt-${v}`}>
               <line
@@ -592,7 +714,6 @@ function OldVsNewScatter({
               </text>
             </g>
           ))}
-          {/* Y grid + ticks */}
           {yTicks.map((v) => (
             <g key={`yt-${v}`}>
               <line
@@ -615,7 +736,6 @@ function OldVsNewScatter({
               </text>
             </g>
           ))}
-          {/* y = x reference line (clipped to where both axes overlap) */}
           {diagHi > diagLo && (
             <line
               x1={toX(diagLo)}
@@ -627,7 +747,6 @@ function OldVsNewScatter({
               strokeDasharray="4 4"
             />
           )}
-          {/* Points */}
           {points
             .filter((p) => !p.isAnchor)
             .map((p) => (
@@ -661,7 +780,6 @@ function OldVsNewScatter({
                 </title>
               </circle>
             ))}
-          {/* Axis labels */}
           <text
             x={PAD.left - 6}
             y={12}
