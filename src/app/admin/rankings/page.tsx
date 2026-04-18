@@ -15,7 +15,6 @@ type ChallengeWithBenchmark = {
   title: string;
   points: number | null;
   is_benchmark?: boolean;
-  benchmark_elo?: number | null;
   benchmark_points?: number | null;
 };
 
@@ -197,7 +196,6 @@ export default async function AdminRankingsPage() {
         avgTimeMs: ts ? ts.sum / ts.count : null,
         points: ch?.points ?? null,
         isBenchmark: ch?.is_benchmark ?? false,
-        benchmarkElo: ch?.benchmark_elo ?? null,
         benchmarkPoints: ch?.benchmark_points ?? null,
       };
     })
@@ -213,7 +211,6 @@ export default async function AdminRankingsPage() {
     avgTimeMs: c.avgTimeMs,
     points: c.points,
     isBenchmark: c.isBenchmark,
-    benchmarkElo: c.benchmarkElo,
     benchmarkPoints: c.benchmarkPoints,
   }));
 

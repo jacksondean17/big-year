@@ -39,11 +39,10 @@ async function main() {
     created_at: string;
     points: number | null;
     is_benchmark: boolean;
-    benchmark_elo: number | null;
     benchmark_points: number | null;
   }>(
     "challenges",
-    "id,title,description,created_at,points,is_benchmark,benchmark_elo,benchmark_points"
+    "id,title,description,created_at,points,is_benchmark,benchmark_points"
   );
 
   // Exclude the April 11 batch — too few comparisons for stable BT scores
@@ -92,7 +91,6 @@ async function main() {
         description: c.description,
         points: c.points,
         is_benchmark: c.is_benchmark,
-        benchmark_elo: c.benchmark_elo,
         benchmark_points: c.benchmark_points,
         bt_theta: theta ?? null,
         bt_ln_theta: theta != null ? Math.log(theta) : null,

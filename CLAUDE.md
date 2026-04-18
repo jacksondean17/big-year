@@ -40,6 +40,11 @@ Eight main tables with Row Level Security:
 - `on_auth_user_created` -> auto-creates profile from Discord user metadata
 - `trg_compute_challenge_points` -> auto-computes `points` from scoring dimensions (depth, courage, story_power, commitment) using formula: `round(((max + avg) / 2) ^ 1.6)`
 
+**Ranking / benchmark fields on `challenges`:** Bradley-Terry ranking is computed app-side from `challenge_comparisons` (no stored Elo column). Benchmarks anchor a ln(θ) → points mapping that's experimented with in `/admin/rankings`:
+- `is_benchmark` (bool) + `benchmark_points` (int) — flagged anchors with a human-assigned target point value. CHECK constraint makes the two fields all-or-nothing.
+- `ln_theta_override` (double precision, nullable) — manual override for the BT-computed ln(θ) used at point-mapping time. The challenge still participates in comparisons; only the mapping input is substituted.
+- `mapped_points` (int, nullable) — curve-interpolated points from the most recent mapping commit. Parallel to `points` (which is still trigger-computed from dimensions); leaderboards read `points` until a later migration flips the view over.
+
 ## Key Files
 
 ```
@@ -63,6 +68,8 @@ src/
 │   ├── completers-list.tsx   # Who completed a challenge
 │   ├── auth-button.tsx       # Login/logout
 │   ├── calendar-subscribe-buttons.tsx  # Google/iCal/Outlook subscribe buttons
+│   ├── ranking-comparison.tsx # Pairwise point-judge UI with adaptive matcher
+│   ├── admin/benchmark-lab.tsx # Benchmark → points mapping experiment in /admin/rankings
 │   └── user-*.tsx            # User list and cards
 ├── lib/
 │   ├── supabase/{client,server}.ts  # Supabase client setup
@@ -78,7 +85,7 @@ src/
 │   ├── discord.ts            # Discord API (get guild nickname)
 │   └── types.ts              # TypeScript interfaces
 supabase/
-├── migrations/               # 11 SQL migrations (schema evolution)
+├── migrations/               # Numbered SQL migrations (schema evolution)
 └── config.toml               # Supabase local config
 data/
 └── *.csv                     # Challenge seed data

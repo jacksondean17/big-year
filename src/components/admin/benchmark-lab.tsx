@@ -13,7 +13,6 @@ export interface LabChallenge {
   avgTimeMs: number | null;
   points: number | null;
   isBenchmark: boolean;
-  benchmarkElo: number | null;
   benchmarkPoints: number | null;
 }
 
@@ -22,13 +21,7 @@ interface Props {
 }
 
 const STORAGE_KEY = "benchmark-lab-overrides-v1";
-// Conversion: ln(θ) diff of ~2.3 = 400 Elo = 10× win odds
-const ELO_SCALE = 400 / Math.log(10);
 const TOP_PERCENTILE_CLAMP = 0.98;
-
-function lnThetaToElo(lnTheta: number): number {
-  return Math.round(1500 + lnTheta * ELO_SCALE);
-}
 
 function interpolate(
   lnTheta: number,
@@ -180,15 +173,14 @@ export function BenchmarkLab({ challenges }: Props) {
     );
     lines.push("-- Review carefully before running against prod!");
     lines.push("BEGIN;");
-    lines.push("UPDATE challenges SET is_benchmark=false, benchmark_elo=NULL, benchmark_points=NULL WHERE is_benchmark=true;");
+    lines.push("UPDATE challenges SET is_benchmark=false, benchmark_points=NULL WHERE is_benchmark=true;");
     let exported = 0;
     for (const c of visibleChallenges) {
       const v = overrides[c.id];
       if (v == null) continue;
-      const elo = lnThetaToElo(Math.log(c.btScore));
       const title = c.title.replace(/'/g, "''");
       lines.push(
-        `UPDATE challenges SET is_benchmark=true, benchmark_elo=${elo}, benchmark_points=${Math.round(v)} WHERE id=${c.id}; -- ${title}`
+        `UPDATE challenges SET is_benchmark=true, benchmark_points=${Math.round(v)} WHERE id=${c.id}; -- ${title}`
       );
       exported++;
     }
