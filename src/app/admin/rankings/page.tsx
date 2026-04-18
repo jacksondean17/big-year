@@ -6,6 +6,18 @@ import { getAllComparisonPairs } from "@/lib/comparisons";
 import { getAppSetting } from "@/lib/settings";
 import { Button } from "@/components/ui/button";
 import { TemperatureControl } from "./temperature-control";
+import { BenchmarkLab, type LabChallenge } from "@/components/admin/benchmark-lab";
+
+// Challenge row as returned from getChallenges() — the Challenge type in
+// types.ts doesn't expose benchmark fields, but the SELECT * query returns them.
+type ChallengeWithBenchmark = {
+  id: number;
+  title: string;
+  points: number | null;
+  is_benchmark?: boolean;
+  benchmark_elo?: number | null;
+  benchmark_points?: number | null;
+};
 
 export default async function AdminRankingsPage() {
   const supabase = await createClient();
@@ -165,13 +177,15 @@ export default async function AdminRankingsPage() {
     ])
   );
 
-  // Merge BT scores with win/loss stats
+  // Merge BT scores with win/loss stats and benchmark fields
   const rankedChallenges = [...btResult.scores.entries()]
     .map(([id, btScore]) => {
       const stats = countMap.get(id) ?? { wins: 0, losses: 0, comparisons: 0 };
+      const ch = challengeMap.get(id) as ChallengeWithBenchmark | undefined;
+      const ts = challengeTimeSums.get(id);
       return {
         id,
-        title: challengeMap.get(id)?.title ?? "Unknown",
+        title: ch?.title ?? "Unknown",
         btScore,
         wins: stats.wins,
         losses: stats.losses,
@@ -180,9 +194,28 @@ export default async function AdminRankingsPage() {
           stats.wins + stats.losses > 0
             ? stats.wins / (stats.wins + stats.losses)
             : 0,
+        avgTimeMs: ts ? ts.sum / ts.count : null,
+        points: ch?.points ?? null,
+        isBenchmark: ch?.is_benchmark ?? false,
+        benchmarkElo: ch?.benchmark_elo ?? null,
+        benchmarkPoints: ch?.benchmark_points ?? null,
       };
     })
     .sort((a, b) => b.btScore - a.btScore);
+
+  const labChallenges: LabChallenge[] = rankedChallenges.map((c) => ({
+    id: c.id,
+    title: c.title,
+    btScore: c.btScore,
+    wins: c.wins,
+    losses: c.losses,
+    winRate: c.winRate,
+    avgTimeMs: c.avgTimeMs,
+    points: c.points,
+    isBenchmark: c.isBenchmark,
+    benchmarkElo: c.benchmarkElo,
+    benchmarkPoints: c.benchmarkPoints,
+  }));
 
   return (
     <div className="space-y-8">
@@ -319,107 +352,12 @@ export default async function AdminRankingsPage() {
         <DecisionTimeChart data={decisionTimeData} profileMap={profileMap} />
       )}
 
-      {/* Challenge rankings by BT score */}
-      <section>
-        <div className="flex items-center gap-2 mb-3">
-          <h3 className="text-lg font-semibold">
-            Challenge Rankings (Bradley-Terry)
-          </h3>
-          <details className="relative">
-            <summary className="cursor-pointer inline-flex items-center gap-1.5 rounded-md border bg-muted/50 px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors select-none">
-              How to read scores
-            </summary>
-            <div className="absolute z-10 left-0 top-7 w-80 rounded-lg border bg-card p-4 text-sm shadow-lg space-y-2">
-              <p className="font-semibold">Reading ln(θ) scores</p>
-              <p>
-                The Bradley-Terry model estimates a strength θ for each challenge
-                from pairwise comparisons. We display <strong>ln(θ)</strong> (the
-                natural log) because raw scores span many orders of magnitude.
-              </p>
-              <p>
-                The <strong>difference</strong> in ln(θ) between two challenges
-                tells you the predicted win probability:
-              </p>
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-muted-foreground">
-                    <th className="text-left py-1">Δ ln(θ)</th>
-                    <th className="text-left py-1">Win %</th>
-                    <th className="text-left py-1">Meaning</th>
-                  </tr>
-                </thead>
-                <tbody className="font-mono">
-                  <tr><td>0</td><td>50%</td><td className="font-sans">Coin flip</td></tr>
-                  <tr><td>1</td><td>73%</td><td className="font-sans">Clear edge</td></tr>
-                  <tr><td>2</td><td>88%</td><td className="font-sans">Strong favorite</td></tr>
-                  <tr><td>3</td><td>95%</td><td className="font-sans">Near-certain</td></tr>
-                </tbody>
-              </table>
-              <p className="text-xs text-muted-foreground">
-                Formula: P(A beats B) = 1 / (1 + e<sup>−(lnθ_A − lnθ_B)</sup>)
-              </p>
-            </div>
-          </details>
-        </div>
-        <div className="rounded-lg border overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted/50 text-left">
-                <th className="px-4 py-3 font-medium">#</th>
-                <th className="px-4 py-3 font-medium">ID</th>
-                <th className="px-4 py-3 font-medium">Challenge</th>
-                <th className="px-4 py-3 font-medium text-right" title="ln(θ) — difference of 1 ≈ 73% win probability">ln(θ)</th>
-                <th className="px-4 py-3 font-medium text-right">W</th>
-                <th className="px-4 py-3 font-medium text-right">L</th>
-                <th className="px-4 py-3 font-medium text-right">Win %</th>
-                <th className="px-4 py-3 font-medium text-right">Avg Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rankedChallenges.map((c, i) => (
-                <tr
-                  key={c.id}
-                  className={i % 2 === 0 ? "bg-card" : "bg-muted/20"}
-                >
-                  <td className="px-4 py-2 text-muted-foreground">{i + 1}</td>
-                  <td className="px-4 py-2 text-muted-foreground font-mono text-xs">
-                    {c.id}
-                  </td>
-                  <td className="px-4 py-2 font-medium">{c.title}</td>
-                  <td className="px-4 py-2 text-right font-mono font-semibold">
-                    {Math.log(c.btScore).toFixed(2)}
-                  </td>
-                  <td className="px-4 py-2 text-right text-green-600">
-                    {c.wins}
-                  </td>
-                  <td className="px-4 py-2 text-right text-red-600">
-                    {c.losses}
-                  </td>
-                  <td className="px-4 py-2 text-right font-mono">
-                    {(c.winRate * 100).toFixed(1)}%
-                  </td>
-                  <td className="px-4 py-2 text-right font-mono text-muted-foreground">
-                    {(() => {
-                      const ts = challengeTimeSums.get(c.id);
-                      return ts ? `${(ts.sum / ts.count / 1000).toFixed(1)}s` : "—";
-                    })()}
-                  </td>
-                </tr>
-              ))}
-              {rankedChallenges.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="px-4 py-8 text-center text-muted-foreground"
-                  >
-                    No comparisons yet
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      {/* Benchmark Lab: rankings table + point mapping experiment */}
+      {labChallenges.length > 0 ? (
+        <BenchmarkLab challenges={labChallenges} />
+      ) : (
+        <p className="text-sm text-muted-foreground">No comparisons yet.</p>
+      )}
 
       {/* Judge Participation */}
       <section>
