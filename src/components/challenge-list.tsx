@@ -276,30 +276,32 @@ export function ChallengeList({
         </div>
       ) : (
         <div className="challenge-table">
-          <ChallengeTableHeader
-            selectedSort={selectedSort}
-            sortDirection={sortDirection}
-            onSortChange={handleSortChange}
-            onSortDirectionToggle={() =>
-              setSortDirection((d) => (d === "desc" ? "asc" : "desc"))
-            }
-          />
-          {filtered.map((challenge) => {
-            const v = voteData[challenge.id] ?? { upvotes: 0, downvotes: 0 };
-            return (
-              <ChallengeTableRow
-                key={challenge.id}
-                challenge={challenge}
-                isSaved={savedChallengeIds?.includes(challenge.id)}
-                upvotes={v.upvotes}
-                downvotes={v.downvotes}
-                userVote={(userVotes[challenge.id] as 1 | -1) ?? null}
-                saveCount={saveCounts?.[challenge.id] ?? 0}
-                completionCount={completionCounts?.[challenge.id] ?? 0}
-                isLoggedIn={isLoggedIn}
-              />
-            );
-          })}
+          <div className="sm:min-w-[720px]">
+            <ChallengeTableHeader
+              selectedSort={selectedSort}
+              sortDirection={sortDirection}
+              onSortChange={handleSortChange}
+              onSortDirectionToggle={() =>
+                setSortDirection((d) => (d === "desc" ? "asc" : "desc"))
+              }
+            />
+            {filtered.map((challenge) => {
+              const v = voteData[challenge.id] ?? { upvotes: 0, downvotes: 0 };
+              return (
+                <ChallengeTableRow
+                  key={challenge.id}
+                  challenge={challenge}
+                  isSaved={savedChallengeIds?.includes(challenge.id)}
+                  upvotes={v.upvotes}
+                  downvotes={v.downvotes}
+                  userVote={(userVotes[challenge.id] as 1 | -1) ?? null}
+                  saveCount={saveCounts?.[challenge.id] ?? 0}
+                  completionCount={completionCounts?.[challenge.id] ?? 0}
+                  isLoggedIn={isLoggedIn}
+                />
+              );
+            })}
+          </div>
         </div>
       )}
 

@@ -591,7 +591,8 @@
   .challenge-table {
     border: 1px solid rgba(42, 157, 143, 0.2);
     border-radius: calc(var(--radius) + 2px);
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
     background: rgba(255, 248, 238, 0.6);
   }
 

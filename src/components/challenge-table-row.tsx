@@ -56,7 +56,15 @@ export function ChallengeTableHeader({
           <span
             key={col.key}
             className={`flex items-center gap-0.5 ${
-              isTitle ? "flex-1 min-w-0" : isCategory ? "w-24" : isSave ? "w-9" : "w-12 justify-end"
+              isTitle
+                ? "flex-1 min-w-0"
+                : isCategory
+                  ? "w-44"
+                  : isSave
+                    ? "w-20"
+                    : col.key === "time"
+                      ? "w-20 justify-end"
+                      : "w-12 justify-end"
             } ${col.hideOnMobile ? "hidden sm:flex" : ""} ${
               isSortable ? "cursor-pointer select-none hover:text-foreground transition-colors" : ""
             }`}
@@ -100,7 +108,7 @@ export function ChallengeTableRow({
     <div className="challenge-table-row group">
       <Link
         href={`/challenges/${challenge.id}`}
-        className="flex items-center gap-2 pl-3 pr-12 py-2.5 transition-colors hover:bg-accent/50"
+        className="flex items-center gap-2 pl-3 pr-24 py-2.5 transition-colors hover:bg-accent/50"
       >
         {/* Points */}
         <span className="w-12 text-right text-sm font-semibold font-mono">
@@ -115,7 +123,7 @@ export function ChallengeTableRow({
         </span>
 
         {/* Category badges */}
-        <span className="hidden sm:flex w-24 gap-1 overflow-hidden">
+        <span className="hidden sm:flex w-44 gap-1 overflow-hidden">
           {challenge.category.slice(0, 2).map((cat) => (
             <Badge key={cat} variant="outline" className="text-[10px] px-1.5 py-0 whitespace-nowrap">
               {cat}
@@ -124,7 +132,7 @@ export function ChallengeTableRow({
         </span>
 
         {/* Time */}
-        <span className="hidden sm:flex w-12 justify-end text-xs text-muted-foreground whitespace-nowrap">
+        <span className="hidden sm:flex w-20 justify-end text-xs text-muted-foreground whitespace-nowrap">
           {challenge.estimated_time}
         </span>
 
@@ -147,7 +155,7 @@ export function ChallengeTableRow({
       </Link>
 
       {/* Save button - outside the link to avoid nested interactivity */}
-      <div className="absolute right-2 top-1/2 -translate-y-1/2 w-9 flex justify-center">
+      <div className="absolute right-3 top-1/2 -translate-y-1/2 w-20 flex justify-end">
         <MyListButton
           challengeId={challenge.id}
           initialSaved={isSaved}
