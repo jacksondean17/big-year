@@ -10,9 +10,33 @@ const ALLOWED_TYPES = [
   "image/png",
   "image/webp",
   "image/gif",
+  "image/heic",
+  "image/heif",
   "video/mp4",
   "video/quicktime",
 ];
+const ALLOWED_EXTENSIONS = [
+  "jpg",
+  "jpeg",
+  "png",
+  "webp",
+  "gif",
+  "heic",
+  "heif",
+  "mp4",
+  "mov",
+];
+const EXT_TO_TYPE: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  gif: "image/gif",
+  heic: "image/heic",
+  heif: "image/heif",
+  mp4: "video/mp4",
+  mov: "video/quicktime",
+};
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
 export async function POST(request: NextRequest) {
@@ -37,16 +61,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+    const typeAllowed = file.type && ALLOWED_TYPES.includes(file.type);
+    const extAllowed = ALLOWED_EXTENSIONS.includes(ext);
+    if (!typeAllowed && !extAllowed) {
       return NextResponse.json(
-        { error: "File type not allowed. Use JPEG, PNG, WebP, GIF, MP4, or MOV." },
+        {
+          error: `File type not allowed (received type="${file.type || "empty"}", ext="${ext || "none"}"). Use JPEG, PNG, WebP, GIF, HEIC, MP4, or MOV.`,
+        },
         { status: 400 }
       );
     }
 
+    // Mobile browsers sometimes send an empty file.type. Fall back to the
+    // extension-derived MIME so the R2 object is stored with a usable type.
+    const resolvedType =
+      file.type && ALLOWED_TYPES.includes(file.type)
+        ? file.type
+        : EXT_TO_TYPE[ext] ?? "application/octet-stream";
+
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { error: "File too large. Maximum size is 100MB." },
+        { error: `File too large (${Math.round(file.size / 1024 / 1024)}MB). Maximum size is 100MB.` },
         { status: 400 }
       );
     }
@@ -67,12 +103,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate storage key
-    const ext = file.name.split(".").pop() || "bin";
-    const key = `completions/${user.id}/${completionId}/${Date.now()}.${ext}`;
+    const keyExt = ext || "bin";
+    const key = `completions/${user.id}/${completionId}/${Date.now()}.${keyExt}`;
 
     // Upload to R2
     const buffer = Buffer.from(await file.arrayBuffer());
-    await uploadToR2(buffer, key, file.type);
+    await uploadToR2(buffer, key, resolvedType);
 
     const publicUrl = getPublicUrl(key);
 
@@ -83,7 +119,7 @@ export async function POST(request: NextRequest) {
         completion_id: completionId,
         storage_path: key,
         public_url: publicUrl,
-        file_type: file.type,
+        file_type: resolvedType,
         file_size: file.size,
       })
       .select()

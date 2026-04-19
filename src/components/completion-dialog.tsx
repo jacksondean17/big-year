@@ -132,20 +132,58 @@ export function CompletionDialog({
         const saved = await markChallengeComplete(challengeId, status!, note, externalUrl);
 
         // Upload any pending files now that we have a completion ID
+        let uploadError: string | null = null;
+        const stillPending: PendingFile[] = [];
+        const toRevoke: string[] = [];
         for (const pf of pendingFiles) {
           const formData = new FormData();
           formData.append("file", pf.file);
           formData.append("completionId", saved.id);
 
-          const res = await fetch("/api/upload", {
-            method: "POST",
-            body: formData,
-          });
-
-          if (!res.ok) {
-            const body = await res.json();
-            setError(body.error || "Upload failed for one or more files.");
+          let res: Response;
+          try {
+            res = await fetch("/api/upload", {
+              method: "POST",
+              body: formData,
+            });
+          } catch (err) {
+            uploadError = `Network error uploading ${pf.file.name}: ${err instanceof Error ? err.message : String(err)}`;
+            stillPending.push(pf);
+            continue;
           }
+
+          if (res.ok) {
+            toRevoke.push(pf.preview);
+            continue;
+          }
+
+          // Read as text first — some platform errors (e.g. 413) return HTML,
+          // which would throw if we blindly called res.json().
+          const text = await res.text().catch(() => "");
+          let message = text;
+          try {
+            const parsed = JSON.parse(text);
+            if (parsed?.error) message = parsed.error;
+          } catch {
+            const sizeMb = (pf.file.size / 1024 / 1024).toFixed(1);
+            if (res.status === 413) {
+              message = `File too large for server (${sizeMb}MB). Try a smaller file or an external link.`;
+            } else {
+              message = `Upload failed (HTTP ${res.status}). File: ${pf.file.name} (${sizeMb}MB, type="${pf.file.type || "empty"}")`;
+            }
+          }
+          uploadError = message;
+          stillPending.push(pf);
+        }
+
+        if (uploadError) {
+          // Revoke previews for the ones that did succeed and keep failed ones
+          // in state so the user can retry just those.
+          for (const url of toRevoke) URL.revokeObjectURL(url);
+          setPendingFiles(stillPending);
+          setError(uploadError);
+          onUpdate(saved);
+          return;
         }
 
         // Clean up previews
