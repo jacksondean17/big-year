@@ -125,7 +125,7 @@ export function ChallengeTableRow({
         {/* Category badges */}
         <span className="hidden sm:flex w-44 gap-1 overflow-hidden">
           {challenge.category.slice(0, 2).map((cat) => (
-            <Badge key={cat} variant="outline" className="text-[10px] px-1.5 py-0 whitespace-nowrap">
+            <Badge key={cat} variant="outline" className="text-xs px-2 py-0.5 whitespace-nowrap">
               {cat}
             </Badge>
           ))}
