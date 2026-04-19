@@ -1,6 +1,16 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { recomputeAndCommitMapping } from "@/lib/benchmark-commit";
+
+async function refreshMapping() {
+  try {
+    const result = await recomputeAndCommitMapping();
+    if (!result.success) console.error("Mapping refresh failed:", result.error);
+  } catch (err) {
+    console.error("Mapping refresh threw:", err);
+  }
+}
 
 export async function submitComparison(winnerId: number, loserId: number, responseTimeMs?: number) {
   const supabase = await createClient();
@@ -19,6 +29,8 @@ export async function submitComparison(winnerId: number, loserId: number, respon
   });
 
   if (error) throw error;
+
+  await refreshMapping();
 }
 
 export async function skipComparison(
@@ -76,4 +88,6 @@ export async function undoComparison(
     .eq("challenge_b_id", b);
 
   if (skipError) throw skipError;
+
+  await refreshMapping();
 }
