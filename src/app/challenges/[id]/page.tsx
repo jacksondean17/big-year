@@ -19,6 +19,7 @@ import {
 } from "@/lib/completions";
 import { getCompletionMedia } from "@/lib/media";
 import { getCommentsForChallenge, getUserCommentVotes } from "@/lib/comments";
+import { effectivePoints } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,6 +44,7 @@ export default async function ChallengePage({
     notFound();
   }
 
+  const points = effectivePoints(challenge);
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const isLoggedIn = !!user;
@@ -86,7 +88,7 @@ export default async function ChallengePage({
           </div>
           <div className="mt-2">
             <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-base font-semibold text-amber-800">
-              {challenge.points != null ? `${challenge.points} pts` : "— pts"}
+              {points != null ? `${points} pts` : "— pts"}
             </span>
           </div>
           {challenge.submitted_by && (

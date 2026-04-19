@@ -43,7 +43,7 @@ Eight main tables with Row Level Security:
 **Ranking / benchmark fields on `challenges`:** Bradley-Terry ranking is computed app-side from `challenge_comparisons` (no stored Elo column). Benchmarks anchor a ln(θ) → points mapping that's experimented with in `/admin/rankings`:
 - `is_benchmark` (bool) + `benchmark_points` (int) — flagged anchors with a human-assigned target point value. CHECK constraint makes the two fields all-or-nothing.
 - `ln_theta_override` (double precision, nullable) — manual override for the BT-computed ln(θ) used at point-mapping time. The challenge still participates in comparisons; only the mapping input is substituted.
-- `mapped_points` (int, nullable) — curve-interpolated points from the most recent mapping commit. Parallel to `points` (which is still trigger-computed from dimensions); leaderboards read `points` until a later migration flips the view over.
+- `mapped_points` (int, nullable) — curve-interpolated points from the most recent mapping commit. Refreshed on every judge submission via `recomputeAndCommitMapping()`. **This is the canonical user-facing point value.** All display and the leaderboard view (`user_point_totals`, migration 021) read `COALESCE(mapped_points, points)` — the fallback to the trigger-computed `points` exists so unmapped challenges still contribute their old value during the cutover. The fallback (and the underlying `points` column + `trg_compute_challenge_points` trigger) will be dropped in a later migration. App code uses the `effectivePoints(challenge)` helper from `lib/types.ts` to apply the same fallback consistently.
 
 ## Key Files
 

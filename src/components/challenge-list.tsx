@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Challenge } from "@/lib/types";
+import { Challenge, effectivePoints } from "@/lib/types";
 import type { SortOption, SortDirection, ViewMode, VoteData, ChallengeSaver } from "@/lib/types";
 import { ChallengeCard } from "./challenge-card";
 import { ChallengeFilters } from "./challenge-filters";
@@ -84,7 +84,7 @@ function makeSortComparator(
         return (getControversy(bData) - getControversy(aData)) * d;
       };
     case "points":
-      return (a, b) => ((b.points ?? 0) - (a.points ?? 0)) * d;
+      return (a, b) => ((effectivePoints(b) ?? 0) - (effectivePoints(a) ?? 0)) * d;
     case "saves":
       return (a, b) => ((saveCounts?.[b.id] ?? 0) - (saveCounts?.[a.id] ?? 0)) * d;
     case "completions":

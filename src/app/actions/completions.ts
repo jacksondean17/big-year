@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { sendCompletionMessage } from "@/lib/discord";
+import { effectivePoints } from "@/lib/types";
 import type { Completion, CompletionStatus, ChallengeCompleter } from "@/lib/types";
 
 export async function markChallengeComplete(
@@ -57,7 +58,7 @@ export async function sendUserCompletionPing(
       await Promise.all([
         supabase
           .from("challenges")
-          .select("title, points, category")
+          .select("title, points, mapped_points, category")
           .eq("id", challengeId)
           .single(),
         supabase
@@ -92,7 +93,7 @@ export async function sendUserCompletionPing(
       displayName: profile.guild_nickname ?? profile.display_name ?? "Someone",
       challengeTitle: challenge.title,
       challengeId,
-      points: challenge.points,
+      points: effectivePoints(challenge),
       category: challenge.category,
       note: completion?.completion_note,
       externalUrl: completion?.external_url,

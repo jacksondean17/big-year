@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { effectivePoints } from "@/lib/types";
 import { SendPingButton } from "./send-ping-button";
 
 function getServiceClient() {
@@ -22,7 +23,7 @@ export default async function AdminCompletionsPage() {
       completed_at,
       completion_note,
       profiles(display_name, guild_nickname, discord_id),
-      challenges(title, points, category)
+      challenges(title, points, mapped_points, category)
     `
     )
     .eq("status", "completed")
@@ -59,6 +60,7 @@ export default async function AdminCompletionsPage() {
               const challenge = c.challenges as unknown as {
                 title: string;
                 points: number | null;
+                mapped_points: number | null;
                 category: string;
               };
               const hasDiscord = !!profile?.discord_id;
@@ -73,7 +75,7 @@ export default async function AdminCompletionsPage() {
                   </td>
                   <td className="px-4 py-3">{challenge?.title ?? "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {challenge?.points ?? "—"}
+                    {(challenge ? effectivePoints(challenge) : null) ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {c.completed_at

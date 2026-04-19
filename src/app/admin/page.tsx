@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getChallenges } from "@/lib/challenges";
+import { effectivePoints } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 
 export default async function AdminPage() {
@@ -52,7 +53,7 @@ export default async function AdminPage() {
                   {challenge.category.join(", ")}
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">
-                  {challenge.points ?? "—"}
+                  {effectivePoints(challenge) ?? "—"}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <Link

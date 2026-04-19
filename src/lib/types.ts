@@ -41,6 +41,18 @@ export function getDisplayName(profile: { display_name: string; guild_nickname?:
   return profile.guild_nickname ?? profile.display_name;
 }
 
+/**
+ * Effective point value for a challenge: BT-mapped if available, falling back
+ * to the trigger-computed dimension-based value. The fallback exists so the
+ * cutover doesn't zero-out unmapped challenges; remove it once `points` is dropped.
+ */
+export function effectivePoints(c: {
+  points: number | null;
+  mapped_points?: number | null;
+}): number | null {
+  return c.mapped_points ?? c.points;
+}
+
 export interface ChallengeSaver {
   user_id: string;
   added_at: string;

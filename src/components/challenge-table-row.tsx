@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ArrowUp, ArrowDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Challenge } from "@/lib/types";
+import { Challenge, effectivePoints } from "@/lib/types";
 import type { SortOption, SortDirection, UserVoteType } from "@/lib/types";
 import { MyListButton } from "@/components/my-list-button";
 import { VoteButton } from "@/components/vote-button";
@@ -105,7 +105,7 @@ export function ChallengeTableRow({
         {/* Points */}
         <span className="w-12 text-right text-sm font-semibold font-mono">
           <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
-            {challenge.points ?? "—"}
+            {effectivePoints(challenge) ?? "—"}
           </span>
         </span>
 

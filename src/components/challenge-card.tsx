@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Challenge } from "@/lib/types";
+import { Challenge, effectivePoints } from "@/lib/types";
 import type { UserVoteType, ChallengeSaver } from "@/lib/types";
 import { MyListButton } from "@/components/my-list-button";
 import { VoteButton } from "@/components/vote-button";
@@ -42,6 +42,7 @@ export function ChallengeCard({
   submitterDisplayName?: string;
   isLoggedIn?: boolean;
 }) {
+  const points = effectivePoints(challenge);
   return (
     <Link href={`/challenges/${challenge.id}`}>
       <Card className="h-full transition-all hover:-translate-y-0.5">
@@ -82,7 +83,7 @@ export function ChallengeCard({
               </Badge>
             ))}
             <span className="ml-auto inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-sm font-semibold text-amber-800">
-              {challenge.points != null ? `${challenge.points} pts` : "— pts"}
+              {points != null ? `${points} pts` : "— pts"}
             </span>
           </div>
         </CardHeader>

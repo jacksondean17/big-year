@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendCompletionMessage } from "@/lib/discord";
+import { effectivePoints } from "@/lib/types";
 
 function getServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -41,7 +42,7 @@ export async function sendCompletionPing(
       .single(),
     supabase
       .from("challenges")
-      .select("title, points, category")
+      .select("title, points, mapped_points, category")
       .eq("id", challengeId)
       .single(),
   ]);
@@ -87,7 +88,7 @@ export async function sendCompletionPing(
     displayName: profile.guild_nickname ?? profile.display_name ?? "Someone",
     challengeTitle: challenge.title,
     challengeId,
-    points: challenge.points,
+    points: effectivePoints(challenge),
     category: challenge.category,
     note: completion?.completion_note,
     externalUrl: completion?.external_url,
