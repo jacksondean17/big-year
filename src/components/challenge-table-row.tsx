@@ -61,7 +61,7 @@ export function ChallengeTableHeader({
                 : isCategory
                   ? "w-44"
                   : isSave
-                    ? "w-20"
+                    ? "w-24"
                     : col.key === "time"
                       ? "w-20 justify-end"
                       : "w-12 justify-end"
@@ -108,7 +108,7 @@ export function ChallengeTableRow({
     <div className="challenge-table-row group">
       <Link
         href={`/challenges/${challenge.id}`}
-        className="flex items-center gap-2 pl-3 pr-24 py-2.5 transition-colors hover:bg-accent/50"
+        className="flex items-center gap-2 pl-3 pr-28 py-2.5 transition-colors hover:bg-accent/50"
       >
         {/* Points */}
         <span className="w-12 text-right text-sm font-semibold font-mono">
@@ -155,7 +155,7 @@ export function ChallengeTableRow({
       </Link>
 
       {/* Save button - outside the link to avoid nested interactivity */}
-      <div className="absolute right-3 top-1/2 -translate-y-1/2 w-20 flex justify-end">
+      <div className="absolute right-3 top-1/2 -translate-y-1/2 w-24 flex justify-end">
         <MyListButton
           challengeId={challenge.id}
           initialSaved={isSaved}
