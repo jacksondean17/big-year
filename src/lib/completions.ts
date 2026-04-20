@@ -21,6 +21,23 @@ export async function getUserCompletionForChallenge(
   return data as Completion;
 }
 
+export async function getUserCompletedChallengeIds(): Promise<Set<number>> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return new Set();
+
+  const { data, error } = await supabase
+    .from("challenge_completions")
+    .select("challenge_id")
+    .eq("user_id", user.id)
+    .eq("status", "completed");
+
+  if (error) return new Set();
+  return new Set((data ?? []).map((row) => row.challenge_id));
+}
+
 export async function getUserCompletions(): Promise<Completion[]> {
   const supabase = await createClient();
   const {

@@ -30,7 +30,8 @@ import { SaversList } from "@/components/savers-list";
 import { CompletionButton } from "@/components/completion-button";
 import { CompletersList } from "@/components/completers-list";
 import { CommentsSection } from "@/components/comments-section";
-import { UserPen } from "lucide-react";
+import { CheckCircle2, UserPen } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default async function ChallengePage({
   params,
@@ -66,6 +67,7 @@ export default async function ChallengePage({
       getCommentsForChallenge(challenge.id),
     ]);
   const isSaved = savedIds.has(challenge.id);
+  const isCompletedByUser = userCompletion?.status === "completed";
   const [completionMedia, userCommentVotes] = await Promise.all([
     userCompletion ? getCompletionMedia(userCompletion.id) : Promise.resolve([]),
     getUserCommentVotes(comments.map((c) => c.id)),
@@ -79,12 +81,23 @@ export default async function ChallengePage({
         </Button>
       </Link>
 
-      <Card>
+      <Card
+        className={cn(
+          isCompletedByUser &&
+            "ring-2 ring-amber-400 shadow-[0_0_32px_-4px_rgba(251,191,36,0.55)]"
+        )}
+      >
         <CardHeader>
-          <div className="flex flex-wrap gap-2 mb-2">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
             {challenge.category.map((cat) => (
               <Badge key={cat} variant="outline">{cat}</Badge>
             ))}
+            {isCompletedByUser && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm">
+                <CheckCircle2 className="size-3.5" />
+                Done!
+              </span>
+            )}
           </div>
           <div className="mt-2">
             <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-base font-semibold text-amber-800">

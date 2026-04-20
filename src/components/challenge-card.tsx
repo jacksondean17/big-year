@@ -13,8 +13,9 @@ import { MyListButton } from "@/components/my-list-button";
 import { VoteButton } from "@/components/vote-button";
 import { SaversCount } from "@/components/savers-count";
 import { CompletersCount } from "@/components/completers-count";
-import { StickyNote } from "lucide-react";
+import { CheckCircle2, StickyNote } from "lucide-react";
 import { SubmittedByIcon } from "@/components/submitted-by";
+import { cn } from "@/lib/utils";
 
 
 export function ChallengeCard({
@@ -28,6 +29,7 @@ export function ChallengeCard({
   completionCount = 0,
   savers = [],
   submitterDisplayName,
+  isCompletedByUser = false,
   isLoggedIn = false,
 }: {
   challenge: Challenge;
@@ -40,12 +42,19 @@ export function ChallengeCard({
   completionCount?: number;
   savers?: ChallengeSaver[];
   submitterDisplayName?: string;
+  isCompletedByUser?: boolean;
   isLoggedIn?: boolean;
 }) {
   const points = effectivePoints(challenge);
   return (
     <Link href={`/challenges/${challenge.id}`}>
-      <Card className="h-full transition-all hover:-translate-y-0.5">
+      <Card
+        className={cn(
+          "h-full transition-all hover:-translate-y-0.5",
+          isCompletedByUser &&
+            "ring-2 ring-amber-400 shadow-[0_0_24px_-4px_rgba(251,191,36,0.55)]"
+        )}
+      >
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-2">
             <CardTitle className="text-base leading-tight">
@@ -82,6 +91,12 @@ export function ChallengeCard({
                 {cat}
               </Badge>
             ))}
+            {isCompletedByUser && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2 py-0.5 text-xs font-semibold text-white shadow-sm">
+                <CheckCircle2 className="size-3" />
+                Done!
+              </span>
+            )}
             <span className="ml-auto inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-sm font-semibold text-amber-800">
               {points != null ? `${points} pts` : "— pts"}
             </span>

@@ -104,6 +104,7 @@ export function ChallengeList({
   userNoteIds,
   saveCounts,
   completionCounts,
+  userCompletedIds,
   saversMap,
   submitterNames,
   isLoggedIn = false,
@@ -115,10 +116,12 @@ export function ChallengeList({
   userNoteIds?: number[];
   saveCounts?: Record<number, number>;
   completionCounts?: Record<number, number>;
+  userCompletedIds?: number[];
   saversMap?: Record<number, ChallengeSaver[]>;
   submitterNames?: Record<string, string>;
   isLoggedIn?: boolean;
 }) {
+  const completedSet = useMemo(() => new Set(userCompletedIds ?? []), [userCompletedIds]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSort, setSelectedSort] = useState<SortOption>("default");
@@ -268,6 +271,7 @@ export function ChallengeList({
                 hasNote={userNoteIds?.includes(challenge.id)}
                 saveCount={saveCounts?.[challenge.id] ?? 0}
                 completionCount={completionCounts?.[challenge.id] ?? 0}
+                isCompletedByUser={completedSet.has(challenge.id)}
                 submitterDisplayName={challenge.submitted_by ? submitterNames?.[challenge.submitted_by] : undefined}
                 isLoggedIn={isLoggedIn}
               />
@@ -297,6 +301,7 @@ export function ChallengeList({
                   userVote={(userVotes[challenge.id] as 1 | -1) ?? null}
                   saveCount={saveCounts?.[challenge.id] ?? 0}
                   completionCount={completionCounts?.[challenge.id] ?? 0}
+                  isCompletedByUser={completedSet.has(challenge.id)}
                   isLoggedIn={isLoggedIn}
                 />
               );

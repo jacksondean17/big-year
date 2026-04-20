@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowUp, ArrowDown, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Challenge, effectivePoints } from "@/lib/types";
 import type { SortOption, SortDirection, UserVoteType } from "@/lib/types";
 import { MyListButton } from "@/components/my-list-button";
 import { VoteButton } from "@/components/vote-button";
+import { cn } from "@/lib/utils";
 
 const columns: { key: SortOption | "title" | "category" | "save"; label: string; hideOnMobile?: boolean }[] = [
   { key: "points", label: "Pts" },
@@ -91,6 +92,7 @@ export function ChallengeTableRow({
   userVote = null,
   saveCount = 0,
   completionCount = 0,
+  isCompletedByUser = false,
   isLoggedIn = false,
 }: {
   challenge: Challenge;
@@ -100,12 +102,19 @@ export function ChallengeTableRow({
   userVote?: UserVoteType;
   saveCount?: number;
   completionCount?: number;
+  isCompletedByUser?: boolean;
   isLoggedIn?: boolean;
 }) {
   const score = upvotes - downvotes;
 
   return (
-    <div className="challenge-table-row group">
+    <div
+      className={cn(
+        "challenge-table-row group",
+        isCompletedByUser &&
+          "ring-1 ring-amber-400 bg-amber-50/40 shadow-[inset_0_0_16px_-6px_rgba(251,191,36,0.45)]"
+      )}
+    >
       <Link
         href={`/challenges/${challenge.id}`}
         className="flex items-center gap-2 pl-3 pr-28 py-2.5 transition-colors hover:bg-accent/50"
@@ -118,8 +127,14 @@ export function ChallengeTableRow({
         </span>
 
         {/* Title */}
-        <span className="flex-1 min-w-0 truncate text-sm font-medium font-display">
-          {challenge.title}
+        <span className="flex-1 min-w-0 truncate text-sm font-medium font-display flex items-center gap-1.5">
+          {isCompletedByUser && (
+            <CheckCircle2
+              className="size-4 shrink-0 text-amber-500"
+              aria-label="Done"
+            />
+          )}
+          <span className="truncate">{challenge.title}</span>
         </span>
 
         {/* Category badges */}
