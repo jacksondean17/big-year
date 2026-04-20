@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Clock, Target, ExternalLink } from "lucide-react";
+import { CheckCircle, Clock, Target, ExternalLink, ChevronDown } from "lucide-react";
 import { getDisplayName, type ChallengeCompleter, type CompletionStatus } from "@/lib/types";
 import { ImagePreview, useImagePreview } from "@/components/image-preview";
 
@@ -93,6 +93,13 @@ export function CompletersList({ completers, completionCount }: CompletersListPr
                       <Icon className="size-3" />
                       {statusLabel[completer.status]}
                     </Badge>
+                  )}
+                  {hasDetails && (
+                    <ChevronDown
+                      className={`size-4 text-muted-foreground transition-transform ${
+                        isExpanded ? "rotate-180" : ""
+                      }`}
+                    />
                   )}
                 </button>
 
