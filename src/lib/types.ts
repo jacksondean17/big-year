@@ -18,6 +18,24 @@ export interface Challenge {
   mapped_points?: number | null;
 }
 
+export const CATEGORY_OPTIONS = [
+  "Social",
+  "Physical",
+  "Achievement",
+  "Creative",
+  "Growth/Self",
+  "Absurd",
+] as const;
+
+export const ESTIMATED_TIME_OPTIONS = [
+  "Hours",
+  "Days",
+  "Weeks",
+  "Months",
+  "Full Year",
+  "IDEK",
+] as const;
+
 export type UserVoteType = 1 | -1 | null;
 
 export interface VoteData {

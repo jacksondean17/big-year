@@ -3,7 +3,17 @@ import { createChallenge } from "@/app/actions/admin-challenges";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CategorySelector } from "@/components/category-selector";
+import { ESTIMATED_TIME_OPTIONS } from "@/lib/types";
+
+const DIMENSIONS = [
+  { name: "depth", label: "Depth" },
+  { name: "courage", label: "Courage" },
+  { name: "story_power", label: "Story Power" },
+  { name: "commitment", label: "Commitment" },
+] as const;
 
 export default function NewChallengePage() {
   return (
@@ -38,49 +48,42 @@ export default function NewChallengePage() {
             </div>
 
             <div className="space-y-1.5">
-              <label htmlFor="category" className="text-sm font-medium">
-                Category
-              </label>
-              <Input id="category" name="category" placeholder="e.g. Social, Physical" required />
+              <label className="text-sm font-medium">Category</label>
+              <CategorySelector name="category" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label htmlFor="depth" className="text-sm font-medium">
-                  Depth <span className="text-muted-foreground">(1-10)</span>
-                </label>
-                <Input id="depth" name="depth" type="number" min="1" max="10" />
-              </div>
-              <div className="space-y-1.5">
-                <label htmlFor="courage" className="text-sm font-medium">
-                  Courage <span className="text-muted-foreground">(1-10)</span>
-                </label>
-                <Input id="courage" name="courage" type="number" min="1" max="10" />
-              </div>
-              <div className="space-y-1.5">
-                <label htmlFor="story_power" className="text-sm font-medium">
-                  Story Power <span className="text-muted-foreground">(1-10)</span>
-                </label>
-                <Input id="story_power" name="story_power" type="number" min="1" max="10" />
-              </div>
-              <div className="space-y-1.5">
-                <label htmlFor="commitment" className="text-sm font-medium">
-                  Commitment <span className="text-muted-foreground">(1-10)</span>
-                </label>
-                <Input id="commitment" name="commitment" type="number" min="1" max="10" />
-              </div>
+              {DIMENSIONS.map(({ name, label }) => (
+                <div key={name} className="space-y-1.5">
+                  <label htmlFor={name} className="text-sm font-medium">
+                    {label} <span className="text-muted-foreground">(1-10)</span>
+                  </label>
+                  <Select id={name} name={name} defaultValue="">
+                    <option value="">—</option>
+                    {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              ))}
             </div>
 
             <div className="space-y-1.5">
               <label htmlFor="estimated_time" className="text-sm font-medium">
                 Estimated Time
               </label>
-              <Input
-                id="estimated_time"
-                name="estimated_time"
-                placeholder="e.g. 1-2 hours"
-                required
-              />
+              <Select id="estimated_time" name="estimated_time" required defaultValue="">
+                <option value="" disabled>
+                  Select duration…
+                </option>
+                {ESTIMATED_TIME_OPTIONS.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </Select>
             </div>
 
             <div className="space-y-1.5">
