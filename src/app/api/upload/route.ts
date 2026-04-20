@@ -39,6 +39,36 @@ const EXT_TO_TYPE: Record<string, string> = {
 };
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
+// Reject uploads whose first bytes look like HTML/XML/script content. Images
+// and videos in ALLOWED_TYPES never start this way, so this catches attempts
+// to disguise `.html` or `.svg` as an image extension without trying to
+// authoritatively decide the real format.
+function looksLikeHtmlOrScript(buf: Buffer): boolean {
+  let i = 0;
+  if (buf.length >= 3 && buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) {
+    i = 3; // skip UTF-8 BOM
+  }
+  while (
+    i < buf.length &&
+    (buf[i] === 0x20 || buf[i] === 0x09 || buf[i] === 0x0a || buf[i] === 0x0d)
+  ) {
+    i++;
+  }
+  if (i >= buf.length) return false;
+  const head = buf
+    .subarray(i, Math.min(i + 64, buf.length))
+    .toString("ascii")
+    .toLowerCase();
+  return (
+    head.startsWith("<!doctype") ||
+    head.startsWith("<html") ||
+    head.startsWith("<script") ||
+    head.startsWith("<svg") ||
+    head.startsWith("<?xml") ||
+    head.startsWith("<!--")
+  );
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -108,6 +138,17 @@ export async function POST(request: NextRequest) {
 
     // Upload to R2
     const buffer = Buffer.from(await file.arrayBuffer());
+
+    if (looksLikeHtmlOrScript(buffer)) {
+      return NextResponse.json(
+        {
+          error:
+            "File content looks like HTML or script; only images and videos are allowed.",
+        },
+        { status: 400 }
+      );
+    }
+
     await uploadToR2(buffer, key, resolvedType);
 
     const publicUrl = getPublicUrl(key);

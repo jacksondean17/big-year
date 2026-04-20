@@ -30,6 +30,7 @@ export async function uploadToR2(
       Key: key,
       Body: buffer,
       ContentType: contentType,
+      Metadata: { "x-content-type-options": "nosniff" },
     })
   );
 }
