@@ -19,7 +19,7 @@ import {
 } from "@/lib/completions";
 import { getCompletionMedia } from "@/lib/media";
 import { getCommentsForChallenge, getUserCommentVotes } from "@/lib/comments";
-import { effectivePoints } from "@/lib/types";
+import { effectivePoints, getDisplayName } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -102,7 +102,7 @@ export default async function ChallengePage({
               ) : (
                 <UserPen className="size-4" />
               )}
-              <span>Submitted by {submitterProfile ? submitterProfile.display_name : challenge.submitted_by}</span>
+              <span>Submitted by {submitterProfile ? getDisplayName(submitterProfile) : challenge.submitted_by}</span>
             </div>
           )}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">

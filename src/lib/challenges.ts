@@ -1,5 +1,5 @@
 import { createClient } from "./supabase/server";
-import { Challenge, UserProfile } from "./types";
+import { Challenge, UserProfile, getDisplayName } from "./types";
 
 export async function getChallenges(): Promise<Challenge[]> {
   const supabase = await createClient();
@@ -63,13 +63,12 @@ export async function getSubmitterDisplayNames(
 
   const map: Record<string, string> = {};
   for (const profile of data) {
-    // Map the matched username (guild_nickname or display_name) to the display_name
     for (const username of usernames) {
       if (
         profile.guild_nickname === username ||
         profile.display_name === username
       ) {
-        map[username] = profile.display_name;
+        map[username] = getDisplayName(profile);
       }
     }
   }
