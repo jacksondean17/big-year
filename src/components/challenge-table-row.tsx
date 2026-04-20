@@ -112,7 +112,7 @@ export function ChallengeTableRow({
       className={cn(
         "challenge-table-row group",
         isCompletedByUser &&
-          "ring-1 ring-amber-400 bg-amber-50/40 shadow-[inset_0_0_16px_-6px_rgba(251,191,36,0.45)]"
+          "ring-1 ring-amber-500 bg-amber-100/40 shadow-[inset_0_0_16px_-6px_rgba(217,119,6,0.55)]"
       )}
     >
       <Link
@@ -130,7 +130,7 @@ export function ChallengeTableRow({
         <span className="flex-1 min-w-0 truncate text-sm font-medium font-display flex items-center gap-1.5">
           {isCompletedByUser && (
             <CheckCircle2
-              className="size-4 shrink-0 text-amber-500"
+              className="size-4 shrink-0 text-amber-600"
               aria-label="Done"
             />
           )}

@@ -52,7 +52,7 @@ export function ChallengeCard({
         className={cn(
           "h-full transition-all hover:-translate-y-0.5",
           isCompletedByUser &&
-            "ring-2 ring-amber-400 shadow-[0_0_24px_-4px_rgba(251,191,36,0.55)]"
+            "ring-2 ring-amber-500 shadow-[0_0_24px_-4px_rgba(217,119,6,0.65)]"
         )}
       >
         <CardHeader className="pb-3">
@@ -92,7 +92,7 @@ export function ChallengeCard({
               </Badge>
             ))}
             {isCompletedByUser && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2 py-0.5 text-xs font-semibold text-white shadow-sm">
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-600 px-2 py-0.5 text-xs font-semibold text-white shadow-sm">
                 <CheckCircle2 className="size-3" />
                 Done!
               </span>

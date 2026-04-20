@@ -84,7 +84,7 @@ export default async function ChallengePage({
       <Card
         className={cn(
           isCompletedByUser &&
-            "ring-2 ring-amber-400 shadow-[0_0_32px_-4px_rgba(251,191,36,0.55)]"
+            "ring-2 ring-amber-500 shadow-[0_0_32px_-4px_rgba(217,119,6,0.65)]"
         )}
       >
         <CardHeader>
@@ -93,7 +93,7 @@ export default async function ChallengePage({
               <Badge key={cat} variant="outline">{cat}</Badge>
             ))}
             {isCompletedByUser && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm">
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-600 px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm">
                 <CheckCircle2 className="size-3.5" />
                 Done!
               </span>
