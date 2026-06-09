@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -32,6 +33,37 @@ import { CompletersList } from "@/components/completers-list";
 import { CommentsSection } from "@/components/comments-section";
 import { CheckCircle2, UserPen } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const challenge = await getChallengeById(Number(id));
+
+  if (!challenge) {
+    return { title: "Challenge not found" };
+  }
+
+  const title = `${challenge.title} — The Big Year`;
+  const description = challenge.description;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "article",
+    },
+    twitter: {
+      card: "summary",
+      title,
+      description,
+    },
+  };
+}
 
 export default async function ChallengePage({
   params,
